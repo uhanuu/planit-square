@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: mini-service
+
+external-endpoints:
+  countries: https://date.nager.at/api/v3/AvailableCountries
+  holidays: https://date.nager.at/api/v3/PublicHolidays/{year}/{countryCode}
+
