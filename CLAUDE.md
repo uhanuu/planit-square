@@ -128,7 +128,7 @@ public class OrderApplicationService implements CreateOrderUseCase {
 - 의도를 명확히 표현하는 네이밍
 
 ### Javadoc
-- **프로덕션 코드**: 영어 (국제 표준)
+- **프로덕션 코드**: 한글 (가독성)
 - **테스트 코드**: 한글 (가독성)
 - 모든 public/protected 요소 필수
 
