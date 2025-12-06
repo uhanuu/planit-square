@@ -24,7 +24,9 @@ import java.util.Objects;
 @Entity
 @Table(name = "holiday", indexes = {
     @Index(name = "idx_holiday_date", columnList = "date"),
-    @Index(name = "idx_holiday_country", columnList = "country_code")
+    @Index(name = "idx_holiday_country", columnList = "country_code"),
+    @Index(name = "idx_holiday_country_date", columnList = "country_code, date"),
+    @Index(name = "idx_holiday_date_country", columnList = "date, country_code")
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
