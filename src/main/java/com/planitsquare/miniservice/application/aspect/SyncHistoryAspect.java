@@ -2,7 +2,6 @@ package com.planitsquare.miniservice.application.aspect;
 
 import com.planitsquare.miniservice.application.annotation.RecordSyncHistory;
 import com.planitsquare.miniservice.application.port.out.RecordSyncHistoryPort;
-import com.planitsquare.miniservice.application.util.JobIdContext;
 import com.planitsquare.miniservice.domain.vo.Country;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,7 +42,7 @@ public class SyncHistoryAspect {
   /**
    * {@link RecordSyncHistory} 어노테이션이 적용된 메서드를 가로채서 이력을 기록합니다.
    *
-   * <p>Job ID는 {@link JobIdContext}에서 자동으로 가져옵니다.
+   * <p>Job ID, 국가, 연도는 SpEL 표현식을 통해 메서드 파라미터에서 추출됩니다.
    *
    * @param joinPoint AOP Join Point
    * @param recordSyncHistory {@link RecordSyncHistory} 어노테이션
@@ -56,7 +55,7 @@ public class SyncHistoryAspect {
       ProceedingJoinPoint joinPoint,
       RecordSyncHistory recordSyncHistory
   ) throws Throwable {
-    Long jobId = JobIdContext.getJobId();
+    Long jobId = extractValue(joinPoint, recordSyncHistory.jobId(), Long.class);
     Country country = extractValue(joinPoint, recordSyncHistory.country(), Country.class);
     Integer year = extractValue(joinPoint, recordSyncHistory.year(), Integer.class);
 

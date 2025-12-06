@@ -24,9 +24,9 @@ public class AsyncConfig implements AsyncConfigurer {
    *
    * <p>ThreadPoolTaskExecutor를 사용하여 스레드 풀을 생성합니다:
    * <ul>
-   *   <li>코어 스레드 수: 2</li>
-   *   <li>최대 스레드 수: 5</li>
-   *   <li>큐 용량: 100</li>
+   *   <li>코어 스레드 수: 10</li>
+   *   <li>최대 스레드 수: 10</li>
+   *   <li>큐 용량: 200</li>
    *   <li>스레드 이름 접두사: async-holiday-</li>
    * </ul>
    *
@@ -36,12 +36,12 @@ public class AsyncConfig implements AsyncConfigurer {
   @Override
   public Executor getAsyncExecutor() {
     ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-    executor.setCorePoolSize(2);
-    executor.setMaxPoolSize(5);
-    executor.setQueueCapacity(100);
+    executor.setCorePoolSize(10);
+    executor.setMaxPoolSize(10);
+    executor.setQueueCapacity(200);
     executor.setThreadNamePrefix("async-holiday-");
     executor.setWaitForTasksToCompleteOnShutdown(true);
-    executor.setAwaitTerminationSeconds(60);
+    executor.setAwaitTerminationSeconds(10);
     executor.initialize();
     return executor;
   }

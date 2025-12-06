@@ -15,11 +15,11 @@ import java.lang.annotation.Target;
  * <p>사용 예시:
  * <pre>{@code
  * @RecordSyncHistory(
- *   country = "#country",
- *   year = "#year"
+ *   jobId = "#command.jobId()",
+ *   country = "#command.country()",
+ *   year = "#command.year()"
  * )
- * private void fetchAndSaveHolidaysForCountryAndYear(
- *     Country country, int year) {
+ * public List<Holiday> syncHolidaysForCountryAndYear(SyncHolidayCommand command) {
  *   // 성공/실패 기록은 AOP가 자동 처리
  *   // 비즈니스 로직만 작성
  * }
@@ -32,10 +32,20 @@ import java.lang.annotation.Target;
 public @interface RecordSyncHistory {
 
   /**
+   * Job ID를 나타내는 SpEL 표현식.
+   *
+   * <p>메서드 파라미터를 참조하여 Job ID를 추출할 수 있습니다.
+   * 예: {@code "#command.jobId()"}
+   *
+   * @return SpEL 표현식
+   */
+  String jobId();
+
+  /**
    * 국가를 나타내는 SpEL 표현식.
    *
    * <p>메서드 파라미터를 참조하여 국가를 추출할 수 있습니다.
-   * 예: {@code "#country"}
+   * 예: {@code "#command.country()"}
    *
    * @return SpEL 표현식
    */
@@ -45,7 +55,7 @@ public @interface RecordSyncHistory {
    * 연도를 나타내는 SpEL 표현식.
    *
    * <p>메서드 파라미터를 참조하여 연도를 추출할 수 있습니다.
-   * 예: {@code "#year"}
+   * 예: {@code "#command.year()"}
    *
    * @return SpEL 표현식
    */

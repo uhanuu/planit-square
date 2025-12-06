@@ -7,6 +7,7 @@ import com.planitsquare.miniservice.application.port.in.UploadHolidaysUseCase;
 import com.planitsquare.miniservice.application.port.out.FetchCountriesPort;
 import com.planitsquare.miniservice.application.port.out.FindCountryPort;
 import com.planitsquare.miniservice.application.port.out.SaveAllCountriesPort;
+import com.planitsquare.miniservice.application.util.JobIdContext;
 import com.planitsquare.miniservice.common.UseCase;
 import com.planitsquare.miniservice.domain.vo.Country;
 import lombok.RequiredArgsConstructor;
@@ -73,10 +74,13 @@ public class HolidayService implements UploadHolidaysUseCase {
       List<Country> countries,
       List<Integer> years
   ) {
+    Long jobId = JobIdContext.getJobId();
+
     countries.forEach(country ->
-        years.forEach(year ->
-            holidaySyncService.syncHolidaysForCountryAndYear(country, year)
-        )
+        years.forEach(year -> {
+          SyncHolidayCommand syncCommand = new SyncHolidayCommand(jobId, country, year);
+          holidaySyncService.syncHolidaysForCountryAndYear(syncCommand);
+        })
     );
   }
 
