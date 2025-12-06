@@ -9,6 +9,8 @@ import com.planitsquare.miniservice.domain.model.Holiday;
 import com.planitsquare.miniservice.domain.vo.Country;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -37,11 +39,13 @@ public class HolidayService implements UploadHolidaysUseCase {
    * 지정된 연도 범위의 공휴일 데이터를 업로드합니다.
    *
    * <p>실행 타입에 따라 국가 목록을 확보하고, 각 국가와 연도별로 공휴일을 조회하여 저장합니다.
-   * 모든 작업은 단일 트랜잭션 내에서 수행됩니다.
+   * 비동기로 실행되며, 각 실행은 독립적인 트랜잭션 내에서 수행됩니다.
    *
    * @param command 업로드 커맨드 (연도 및 실행 타입 포함)
    * @since 1.0
    */
+  @Async
+  @Transactional
   @Override
   public void uploadHolidays(UploadHolidayCommand command) {
 

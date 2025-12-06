@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
@@ -38,6 +39,7 @@ class HolidayServiceTest {
   @Mock private SaveAllCountriesPort saveAllCountriesPort;
   @Mock private SaveAllHolidaysPort saveAllHolidaysPort;
   @Mock private RecordSyncHistoryPort recordSyncHistoryPort;
+  @Mock private SyncJobPort syncJobPort;
 
   @InjectMocks private HolidayService holidayService;
 
@@ -61,9 +63,12 @@ class HolidayServiceTest {
         new HolidayMetadata(true, true, 2000, List.of("Public"), List.of())
     );
 
-    // 공휴일 조회 기본 설정
-    given(fetchHolidaysPort.fetchHolidays(anyInt(), any(Country.class)))
-        .willReturn(List.of(sampleHoliday));
+    // 공휴일 조회 기본 설정 (lenient로 설정하여 사용되지 않을 수 있음을 허용)
+    lenient().when(fetchHolidaysPort.fetchHolidays(anyInt(), any(Country.class)))
+        .thenReturn(List.of(sampleHoliday));
+
+    // SyncJob 기본 설정
+    lenient().when(syncJobPort.startJob(any(SyncExecutionType.class))).thenReturn(1L);
   }
 
   private UploadHolidayCommand cmd(int year, SyncExecutionType type) {
