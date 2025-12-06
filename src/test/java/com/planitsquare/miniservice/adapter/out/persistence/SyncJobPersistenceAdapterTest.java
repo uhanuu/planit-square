@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.planitsquare.miniservice.adapter.out.persistence.entity.SyncJobJpaEntity;
+import com.planitsquare.miniservice.adapter.out.persistence.repository.SyncHistoryJpaRepository;
 import com.planitsquare.miniservice.adapter.out.persistence.repository.SyncJobJpaRepository;
 import com.planitsquare.miniservice.adapter.out.persistence.vo.JobStatus;
 import com.planitsquare.miniservice.adapter.out.persistence.vo.SyncExecutionType;
@@ -27,11 +28,14 @@ class SyncJobPersistenceAdapterTest {
   @Autowired
   private SyncJobJpaRepository syncJobJpaRepository;
 
+  @Autowired
+  private SyncHistoryJpaRepository syncHistoryJpaRepository;
+
   @AfterEach
-  @Transactional
   void tearDown() {
-    // 각 테스트 후 모든 Job 삭제
-    syncJobJpaRepository.deleteAll();
+    // 각 테스트 후 모든 데이터 삭제 (외래 키 제약 조건 고려)
+    syncHistoryJpaRepository.deleteAllInBatch();
+    syncJobJpaRepository.deleteAllInBatch();
   }
 
   @Test
