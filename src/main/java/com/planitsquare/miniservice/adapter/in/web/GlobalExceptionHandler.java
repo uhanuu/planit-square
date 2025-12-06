@@ -1,5 +1,6 @@
 package com.planitsquare.miniservice.adapter.in.web;
 
+import com.planitsquare.miniservice.application.exception.JobAlreadyRunningException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -94,6 +95,33 @@ public class GlobalExceptionHandler {
       HttpServletRequest request
   ) {
     log.warn("잘못된 상태 - 경로: {}, 메시지: {}", request.getRequestURI(), ex.getMessage());
+
+    ErrorResponse errorResponse = ErrorResponse.of(
+        HttpStatus.CONFLICT.value(),
+        HttpStatus.CONFLICT.getReasonPhrase(),
+        ex.getMessage(),
+        request.getRequestURI()
+    );
+
+    return ResponseEntity
+        .status(HttpStatus.CONFLICT)
+        .body(errorResponse);
+  }
+
+  /**
+   * JobAlreadyRunningException을 처리합니다.
+   *
+   * @param ex JobAlreadyRunningException
+   * @param request HTTP 요청
+   * @return 에러 응답
+   * @since 1.0
+   */
+  @ExceptionHandler(JobAlreadyRunningException.class)
+  public ResponseEntity<ErrorResponse> handleJobAlreadyRunningException(
+      JobAlreadyRunningException ex,
+      HttpServletRequest request
+  ) {
+    log.warn("이미 실행 중인 Job 존재 - 경로: {}, 메시지: {}", request.getRequestURI(), ex.getMessage());
 
     ErrorResponse errorResponse = ErrorResponse.of(
         HttpStatus.CONFLICT.value(),

@@ -177,6 +177,7 @@ public class SyncHistoryJpaEntity {
         .country(country)
         .year(year)
         .syncStatus(SyncStatus.FAILED)
+        .syncedCount(0)
         .durationMillis(durationMillis)
         .errorMessage(errorMessage)
         .syncedAt(syncedAt)

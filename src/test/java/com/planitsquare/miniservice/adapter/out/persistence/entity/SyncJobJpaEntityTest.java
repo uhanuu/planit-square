@@ -21,12 +21,15 @@ class SyncJobJpaEntityTest {
   }
 
   @Test
-  @DisplayName("totalTasks가 음수이면 예외를 발생시킨다")
-  void totalTasks가_음수이면_예외를_발생시킨다() {
-    // Given & When & Then
-    assertThatThrownBy(() -> SyncJobJpaEntity.start(SyncExecutionType.SCHEDULED_BATCH))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("Total tasks must be non-negative");
+  @DisplayName("Job을 시작하면 RUNNING 상태로 생성된다")
+  void Job을_시작하면_RUNNING_상태로_생성된다() {
+    // Given & When
+    SyncJobJpaEntity job = SyncJobJpaEntity.start(SyncExecutionType.SCHEDULED_BATCH);
+
+    // Then
+    assertThat(job).isNotNull();
+    assertThat(job.isRunning()).isTrue();
+    assertThat(job.getExecutionType()).isEqualTo(SyncExecutionType.SCHEDULED_BATCH);
   }
 
   @Test
