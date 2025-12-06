@@ -12,18 +12,13 @@ import static org.mockito.Mockito.times;
 
 import com.planitsquare.miniservice.adapter.out.persistence.vo.SyncExecutionType;
 import com.planitsquare.miniservice.application.port.in.UploadHolidayCommand;
-import com.planitsquare.miniservice.application.port.out.FetchCountriesPort;
-import com.planitsquare.miniservice.application.port.out.FetchHolidaysPort;
-import com.planitsquare.miniservice.application.port.out.FindCountryPort;
-import com.planitsquare.miniservice.application.port.out.SaveAllCountriesPort;
-import com.planitsquare.miniservice.application.port.out.SaveAllHolidaysPort;
+import com.planitsquare.miniservice.application.port.out.*;
 import com.planitsquare.miniservice.domain.model.Holiday;
-import com.planitsquare.miniservice.domain.vo.Country;
-import com.planitsquare.miniservice.domain.vo.CountryCode;
-import com.planitsquare.miniservice.domain.vo.HolidayId;
-import com.planitsquare.miniservice.domain.vo.HolidayMetadata;
+import com.planitsquare.miniservice.domain.vo.*;
+
 import java.time.LocalDate;
 import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -37,43 +32,42 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class HolidayServiceTest {
 
-  @Mock
-  private FindCountryPort findCountryPort;
+  @Mock private FindCountryPort findCountryPort;
+  @Mock private FetchHolidaysPort fetchHolidaysPort;
+  @Mock private FetchCountriesPort fetchCountriesPort;
+  @Mock private SaveAllCountriesPort saveAllCountriesPort;
+  @Mock private SaveAllHolidaysPort saveAllHolidaysPort;
+  @Mock private RecordSyncHistoryPort recordSyncHistoryPort;
 
-  @Mock
-  private FetchHolidaysPort fetchHolidaysPort;
+  @InjectMocks private HolidayService holidayService;
 
-  @Mock
-  private FetchCountriesPort fetchCountriesPort;
-
-  @Mock
-  private SaveAllCountriesPort saveAllCountriesPort;
-
-  @Mock
-  private SaveAllHolidaysPort saveAllHolidaysPort;
-
-  @InjectMocks
-  private HolidayService holidayService;
-
-  private Country testCountryKR;
-  private Country testCountryUS;
-  private List<Country> testCountries;
-  private Holiday testHoliday;
+  private Country KR;
+  private Country US;
+  private List<Country> countries;
+  private Holiday sampleHoliday;
 
   @BeforeEach
   void setUp() {
-    testCountryKR = new Country(new CountryCode("KR"), "South Korea");
-    testCountryUS = new Country(new CountryCode("US"), "United States");
-    testCountries = List.of(testCountryKR, testCountryUS);
+    KR = new Country(new CountryCode("KR"), "South Korea");
+    US = new Country(new CountryCode("US"), "United States");
+    countries = List.of(KR, US);
 
-    testHoliday = new Holiday(
+    sampleHoliday = new Holiday(
         new HolidayId(1L),
-        testCountryKR,
+        KR,
         "설날",
         "Lunar New Year",
         LocalDate.of(2025, 1, 1),
         new HolidayMetadata(true, true, 2000, List.of("Public"), List.of())
     );
+
+    // 공휴일 조회 기본 설정
+    given(fetchHolidaysPort.fetchHolidays(anyInt(), any(Country.class)))
+        .willReturn(List.of(sampleHoliday));
+  }
+
+  private UploadHolidayCommand cmd(int year, SyncExecutionType type) {
+    return new UploadHolidayCommand(year, type);
   }
 
   @Nested
@@ -81,34 +75,28 @@ class HolidayServiceTest {
   class UploadHolidaysTest {
 
     @Test
-    @DisplayName("INITIAL_SYSTEM_LOAD 타입이면 외부 API에서 국가를 조회하고 저장한다")
-    void INITIAL_SYSTEM_LOAD_타입이면_외부_API에서_국가를_조회하고_저장한다() {
+    @DisplayName("INITIAL_SYSTEM_LOAD면 외부 국가 조회 후 저장한다")
+    void initialLoad_조회_및_저장() {
       // Given
-      UploadHolidayCommand command = new UploadHolidayCommand(2025, SyncExecutionType.INITIAL_SYSTEM_LOAD);
-      given(fetchCountriesPort.fetchCountries()).willReturn(testCountries);
-      given(fetchHolidaysPort.fetchHolidays(anyInt(), any(Country.class)))
-          .willReturn(List.of(testHoliday));
+      given(fetchCountriesPort.fetchCountries()).willReturn(countries);
 
       // When
-      holidayService.uploadHolidays(command);
+      holidayService.uploadHolidays(cmd(2025, SyncExecutionType.INITIAL_SYSTEM_LOAD));
 
       // Then
       then(fetchCountriesPort).should(times(1)).fetchCountries();
-      then(saveAllCountriesPort).should(times(1)).saveAllCountries(testCountries);
+      then(saveAllCountriesPort).should(times(1)).saveAllCountries(countries);
       then(findCountryPort).should(never()).findAll();
     }
 
     @Test
-    @DisplayName("INITIAL_SYSTEM_LOAD가 아니면 DB에서 국가를 조회한다")
-    void INITIAL_SYSTEM_LOAD가_아니면_DB에서_국가를_조회한다() {
+    @DisplayName("INITIAL_SYSTEM_LOAD가 아니면 DB에서 국가 조회한다")
+    void batch_조회() {
       // Given
-      UploadHolidayCommand command = new UploadHolidayCommand(2025, SyncExecutionType.SCHEDULED_BATCH);
-      given(findCountryPort.findAll()).willReturn(testCountries);
-      given(fetchHolidaysPort.fetchHolidays(anyInt(), any(Country.class)))
-          .willReturn(List.of(testHoliday));
+      given(findCountryPort.findAll()).willReturn(countries);
 
       // When
-      holidayService.uploadHolidays(command);
+      holidayService.uploadHolidays(cmd(2025, SyncExecutionType.SCHEDULED_BATCH));
 
       // Then
       then(findCountryPort).should(times(1)).findAll();
@@ -117,151 +105,73 @@ class HolidayServiceTest {
     }
 
     @Test
-    @DisplayName("연도 범위 내 모든 연도에 대해 공휴일을 조회하고 저장한다")
-    void 연도_범위_내_모든_연도에_대해_공휴일을_조회하고_저장한다() {
+    @DisplayName("연도 범위 내 모든 연도 X 국가 수만큼 조회 및 저장")
+    void 전체_연도_범위_조회() {
       // Given
-      int endYear = 2025;
-      UploadHolidayCommand command = new UploadHolidayCommand(endYear, SyncExecutionType.SCHEDULED_BATCH);
-      given(findCountryPort.findAll()).willReturn(testCountries);
-      given(fetchHolidaysPort.fetchHolidays(anyInt(), any(Country.class)))
-          .willReturn(List.of(testHoliday));
+      given(findCountryPort.findAll()).willReturn(countries);
 
       // When
-      holidayService.uploadHolidays(command);
+      holidayService.uploadHolidays(cmd(2025, SyncExecutionType.SCHEDULED_BATCH));
 
-      // Then - 2021~2025 (5년) x 2개 국가 = 10번 호출
+      // Then: 2021~2025 (5년) × 2개 국가 = 10번
       then(fetchHolidaysPort).should(times(10)).fetchHolidays(anyInt(), any(Country.class));
       then(saveAllHolidaysPort).should(times(10)).saveAllHolidays(anyList());
     }
 
     @Test
-    @DisplayName("각 국가별로 공휴일을 조회한다")
-    void 각_국가별로_공휴일을_조회한다() {
+    @DisplayName("각 국가에 대해 개별적으로 연도 범위 조회한다")
+    void 국가_별_조회() {
       // Given
-      UploadHolidayCommand command = new UploadHolidayCommand(2025, SyncExecutionType.SCHEDULED_BATCH);
-      given(findCountryPort.findAll()).willReturn(testCountries);
-      given(fetchHolidaysPort.fetchHolidays(anyInt(), any(Country.class)))
-          .willReturn(List.of(testHoliday));
+      given(findCountryPort.findAll()).willReturn(countries);
 
       // When
-      holidayService.uploadHolidays(command);
+      holidayService.uploadHolidays(cmd(2025, SyncExecutionType.SCHEDULED_BATCH));
 
-      // Then - 각 국가에 대해 5년치 조회
-      then(fetchHolidaysPort).should(times(5)).fetchHolidays(anyInt(), eq(testCountryKR));
-      then(fetchHolidaysPort).should(times(5)).fetchHolidays(anyInt(), eq(testCountryUS));
+      // Then
+      then(fetchHolidaysPort).should(times(5)).fetchHolidays(anyInt(), eq(KR));
+      then(fetchHolidaysPort).should(times(5)).fetchHolidays(anyInt(), eq(US));
     }
 
     @Test
-    @DisplayName("국가 목록이 비어있어도 예외가 발생하지 않는다")
-    void 국가_목록이_비어있어도_예외가_발생하지_않는다() {
+    @DisplayName("국가 목록이 비어있어도 예외 발생 안 함")
+    void 빈_국가() {
       // Given
-      UploadHolidayCommand command = new UploadHolidayCommand(2025, SyncExecutionType.SCHEDULED_BATCH);
       given(findCountryPort.findAll()).willReturn(List.of());
 
       // When & Then
-      assertThatCode(() -> holidayService.uploadHolidays(command))
+      assertThatCode(() -> holidayService.uploadHolidays(cmd(2025, SyncExecutionType.SCHEDULED_BATCH)))
           .doesNotThrowAnyException();
     }
-  }
 
-  @Nested
-  @DisplayName("연도 범위 검증 테스트")
-  class YearRangeValidationTest {
+    @Nested
+    @DisplayName("연도 범위 검증")
+    class YearRangeValidation {
 
-    @Test
-    @DisplayName("2025년 입력 시 2021~2025년 공휴일을 조회한다")
-    void year_2025_입력_시_2021_2025년_공휴일을_조회한다() {
-      // Given
-      UploadHolidayCommand command = new UploadHolidayCommand(2025, SyncExecutionType.SCHEDULED_BATCH);
-      given(findCountryPort.findAll()).willReturn(List.of(testCountryKR));
-      given(fetchHolidaysPort.fetchHolidays(anyInt(), any(Country.class)))
-          .willReturn(List.of(testHoliday));
+      @Test
+      @DisplayName("2025년 입력 시 2021~2025 조회")
+      void range_2025() {
+        given(findCountryPort.findAll()).willReturn(List.of(KR));
 
-      // When
-      holidayService.uploadHolidays(command);
+        holidayService.uploadHolidays(cmd(2025, SyncExecutionType.SCHEDULED_BATCH));
 
-      // Then
-      then(fetchHolidaysPort).should().fetchHolidays(2021, testCountryKR);
-      then(fetchHolidaysPort).should().fetchHolidays(2022, testCountryKR);
-      then(fetchHolidaysPort).should().fetchHolidays(2023, testCountryKR);
-      then(fetchHolidaysPort).should().fetchHolidays(2024, testCountryKR);
-      then(fetchHolidaysPort).should().fetchHolidays(2025, testCountryKR);
-    }
+        verifyYearCalls(KR, 2021, 2025);
+      }
 
-    @Test
-    @DisplayName("2004년 입력 시 2000~2004년 공휴일을 조회한다")
-    void year_2004_입력_시_2000_2004년_공휴일을_조회한다() {
-      // Given
-      UploadHolidayCommand command = new UploadHolidayCommand(2004, SyncExecutionType.SCHEDULED_BATCH);
-      given(findCountryPort.findAll()).willReturn(List.of(testCountryKR));
-      given(fetchHolidaysPort.fetchHolidays(anyInt(), any(Country.class)))
-          .willReturn(List.of(testHoliday));
+      @Test
+      @DisplayName("2004년 입력 시 2000~2004 조회")
+      void range_2004() {
+        given(findCountryPort.findAll()).willReturn(List.of(KR));
 
-      // When
-      holidayService.uploadHolidays(command);
+        holidayService.uploadHolidays(cmd(2004, SyncExecutionType.SCHEDULED_BATCH));
 
-      // Then
-      then(fetchHolidaysPort).should().fetchHolidays(2000, testCountryKR);
-      then(fetchHolidaysPort).should().fetchHolidays(2001, testCountryKR);
-      then(fetchHolidaysPort).should().fetchHolidays(2002, testCountryKR);
-      then(fetchHolidaysPort).should().fetchHolidays(2003, testCountryKR);
-      then(fetchHolidaysPort).should().fetchHolidays(2004, testCountryKR);
-    }
-  }
+        verifyYearCalls(KR, 2000, 2004);
+      }
 
-  @Nested
-  @DisplayName("다양한 SyncExecutionType 테스트")
-  class SyncExecutionTypeTest {
-
-    @Test
-    @DisplayName("SCHEDULED_BATCH 타입이면 DB에서 국가를 조회한다")
-    void SCHEDULED_BATCH_타입이면_DB에서_국가를_조회한다() {
-      // Given
-      UploadHolidayCommand command = new UploadHolidayCommand(2025, SyncExecutionType.SCHEDULED_BATCH);
-      given(findCountryPort.findAll()).willReturn(testCountries);
-      given(fetchHolidaysPort.fetchHolidays(anyInt(), any(Country.class)))
-          .willReturn(List.of(testHoliday));
-
-      // When
-      holidayService.uploadHolidays(command);
-
-      // Then
-      then(findCountryPort).should().findAll();
-      then(fetchCountriesPort).should(never()).fetchCountries();
-    }
-
-    @Test
-    @DisplayName("API_REFRESH 타입이면 DB에서 국가를 조회한다")
-    void API_REFRESH_타입이면_DB에서_국가를_조회한다() {
-      // Given
-      UploadHolidayCommand command = new UploadHolidayCommand(2025, SyncExecutionType.API_REFRESH);
-      given(findCountryPort.findAll()).willReturn(testCountries);
-      given(fetchHolidaysPort.fetchHolidays(anyInt(), any(Country.class)))
-          .willReturn(List.of(testHoliday));
-
-      // When
-      holidayService.uploadHolidays(command);
-
-      // Then
-      then(findCountryPort).should().findAll();
-      then(fetchCountriesPort).should(never()).fetchCountries();
-    }
-
-    @Test
-    @DisplayName("MANUAL_EXECUTION 타입이면 DB에서 국가를 조회한다")
-    void MANUAL_EXECUTION_타입이면_DB에서_국가를_조회한다() {
-      // Given
-      UploadHolidayCommand command = new UploadHolidayCommand(2025, SyncExecutionType.MANUAL_EXECUTION);
-      given(findCountryPort.findAll()).willReturn(testCountries);
-      given(fetchHolidaysPort.fetchHolidays(anyInt(), any(Country.class)))
-          .willReturn(List.of(testHoliday));
-
-      // When
-      holidayService.uploadHolidays(command);
-
-      // Then
-      then(findCountryPort).should().findAll();
-      then(fetchCountriesPort).should(never()).fetchCountries();
+      private void verifyYearCalls(Country country, int startYear, int endYear) {
+        for (int year = startYear; year <= endYear; year++) {
+          then(fetchHolidaysPort).should().fetchHolidays(year, country);
+        }
+      }
     }
   }
 }

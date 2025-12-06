@@ -1,9 +1,9 @@
 package com.planitsquare.miniservice.adapter.out.persistence.entity;
 
-import com.planitsquare.miniservice.adapter.out.persistence.vo.SyncExecutionType;
 import com.planitsquare.miniservice.adapter.out.persistence.vo.SyncStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.util.Assert;
@@ -20,10 +20,10 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "sync_history", indexes = {
+    @Index(name = "idx_sync_job", columnList = "job_id"),
     @Index(name = "idx_sync_country", columnList = "country_code"),
     @Index(name = "idx_sync_year", columnList = "`year`"),
     @Index(name = "idx_sync_status", columnList = "sync_status"),
-    @Index(name = "idx_execution_type", columnList = "execution_type"),
     @Index(name = "idx_synced_at", columnList = "synced_at")
 })
 @Getter
@@ -34,6 +34,13 @@ public class SyncHistoryJpaEntity {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Column(name = "sync_history_id")
   private Long id;
+
+  /**
+   * 이 History가 속한 동기화 Job.
+   */
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "job_id")
+  private SyncJobJpaEntity syncJob;
 
   /**
    * 동기화 대상 국가.
@@ -49,13 +56,6 @@ public class SyncHistoryJpaEntity {
   private Integer year;
 
   /**
-   * 동기화 실행 타입 (작업 종류 + 트리거 방식 통합).
-   */
-  @Enumerated(EnumType.STRING)
-  @Column(name = "execution_type", nullable = false, length = 30)
-  private SyncExecutionType executionType;
-
-  /**
    * 동기화 상태.
    */
   @Enumerated(EnumType.STRING)
@@ -69,16 +69,10 @@ public class SyncHistoryJpaEntity {
   private Integer syncedCount = 0;
 
   /**
-   * 외부 API 호출 횟수.
+   * 동기화 소요 시간 (밀리초).
    */
-  @Column(name = "api_call_count")
-  private Integer apiCallCount = 0;
-
-  /**
-   * 동기화 소요 시간 (나노초).
-   */
-  @Column(name = "duration_nanos")
-  private Long durationNanos;
+  @Column(name = "duration_millis")
+  private Long durationMillis;
 
   /**
    * 에러 메시지.
@@ -92,74 +86,101 @@ public class SyncHistoryJpaEntity {
   @Column(name = "synced_at")
   private LocalDateTime syncedAt;
 
+  @Builder
+  private SyncHistoryJpaEntity(
+      Long id,
+      SyncJobJpaEntity syncJob,
+      CountryJpaEntity country,
+      Integer year,
+      SyncStatus syncStatus,
+      Integer syncedCount,
+      Long durationMillis,
+      String errorMessage,
+      LocalDateTime syncedAt
+  ) {
+    this.id = id;
+    this.syncJob = syncJob;
+    this.country = country;
+    this.year = year;
+    this.syncStatus = syncStatus;
+    this.syncedCount = syncedCount;
+    this.durationMillis = durationMillis;
+    this.errorMessage = errorMessage;
+    this.syncedAt = syncedAt;
+  }
+
   /**
    * 동기화 성공 이력을 생성합니다.
    *
-   * @param country       국가
-   * @param year          년도
-   * @param executionType 실행 타입
-   * @param syncedCount   동기화된 개수
-   * @param durationNanos 소요 시간 (나노초)
-   * @param apiCallCount  외부 API 호출 횟수
+   * @param job            동기화 Job
+   * @param country        국가
+   * @param year           년도
+   * @param syncedCount    동기화된 개수
+   * @param durationMillis 소요 시간 (밀리초)
+   * @param syncedAt       동기화 완료 시간
    * @return SyncHistoryJpaEntity
    */
   public static SyncHistoryJpaEntity createSuccess(
+      SyncJobJpaEntity job,
       CountryJpaEntity country,
       Integer year,
-      SyncExecutionType executionType,
       Integer syncedCount,
-      Long durationNanos,
-      Integer apiCallCount
+      Long durationMillis,
+      LocalDateTime syncedAt
   ) {
+    Assert.notNull(job, "Job must not be null");
     Assert.notNull(country, "Country must not be null");
     Assert.notNull(year, "Year must not be null");
-    Assert.notNull(executionType, "Execution type must not be null");
+    Assert.notNull(durationMillis, "Duration millis must not be null");
     Assert.isTrue(syncedCount >= 0, "Synced count must be non-negative");
+    Assert.notNull(syncedAt, "Synced at must not be null");
 
-    SyncHistoryJpaEntity history = new SyncHistoryJpaEntity();
-    history.country = country;
-    history.year = year;
-    history.executionType = executionType;
-    history.syncStatus = SyncStatus.SUCCESS;
-    history.syncedCount = syncedCount;
-    history.durationNanos = durationNanos;
-    history.apiCallCount = apiCallCount;
-    history.syncedAt = LocalDateTime.now();
-    return history;
+    return SyncHistoryJpaEntity.builder()
+        .syncJob(job)
+        .country(country)
+        .year(year)
+        .syncStatus(SyncStatus.SUCCESS)
+        .syncedCount(syncedCount)
+        .durationMillis(durationMillis)
+        .syncedAt(syncedAt)
+        .build();
   }
 
   /**
    * 동기화 실패 이력을 생성합니다.
    *
-   * @param country       국가
-   * @param year          년도
-   * @param executionType 실행 타입
-   * @param errorMessage  에러 메시지
-   * @param durationNanos 소요 시간 (나노초)
+   * @param job            동기화 Job
+   * @param country        국가
+   * @param year           년도
+   * @param errorMessage   에러 메시지
+   * @param durationMillis 소요 시간 (밀리초)
+   * @param syncedAt       동기화 완료 시간
    * @return SyncHistoryJpaEntity
    */
   public static SyncHistoryJpaEntity createFailure(
+      SyncJobJpaEntity job,
       CountryJpaEntity country,
       Integer year,
-      SyncExecutionType executionType,
       String errorMessage,
-      Long durationNanos
+      Long durationMillis,
+      LocalDateTime syncedAt
   ) {
+    Assert.notNull(job, "Job must not be null");
     Assert.notNull(country, "Country must not be null");
     Assert.notNull(year, "Year must not be null");
-    Assert.notNull(executionType, "Execution type must not be null");
+    Assert.notNull(durationMillis, "Duration millis must not be null");
     Assert.hasText(errorMessage, "Error message must not be empty");
+    Assert.notNull(syncedAt, "Synced at must not be null");
 
-    SyncHistoryJpaEntity history = new SyncHistoryJpaEntity();
-    history.country = country;
-    history.year = year;
-    history.executionType = executionType;
-    history.syncStatus = SyncStatus.FAILED;
-    history.syncedCount = 0;
-    history.errorMessage = errorMessage;
-    history.durationNanos = durationNanos;
-    history.syncedAt = LocalDateTime.now();
-    return history;
+    return SyncHistoryJpaEntity.builder()
+        .syncJob(job)
+        .country(country)
+        .year(year)
+        .syncStatus(SyncStatus.FAILED)
+        .durationMillis(durationMillis)
+        .errorMessage(errorMessage)
+        .syncedAt(syncedAt)
+        .build();
   }
 
   /**
@@ -186,22 +207,11 @@ public class SyncHistoryJpaEntity {
    * @return 처리 속도, 계산할 수 없으면 null
    */
   public Double getProcessingRate() {
-    if (durationNanos == null || durationNanos == 0 || syncedCount == 0) {
+    if (durationMillis == null || durationMillis == 0 || syncedCount == 0) {
       return null;
     }
-    double durationSeconds = durationNanos / 1_000_000_000.0;
+    double durationSeconds = durationMillis / 1000.0;
     return syncedCount / durationSeconds;
   }
 
-  /**
-   * 평균 외부 API 응답 시간을 계산합니다 (나노초/호출).
-   *
-   * @return 평균 응답 시간 (나노초), 계산할 수 없으면 null
-   */
-  public Double getAverageApiResponseTime() {
-    if (durationNanos == null || apiCallCount == null || apiCallCount == 0) {
-      return null;
-    }
-    return (double) durationNanos / apiCallCount;
-  }
 }
