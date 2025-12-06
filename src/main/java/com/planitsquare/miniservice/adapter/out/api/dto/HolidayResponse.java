@@ -1,4 +1,4 @@
-package com.planitsquare.miniservice.adapter.out.api.holiday.dto;
+package com.planitsquare.miniservice.adapter.out.api.dto;
 
 import java.time.LocalDate;
 import java.util.List;

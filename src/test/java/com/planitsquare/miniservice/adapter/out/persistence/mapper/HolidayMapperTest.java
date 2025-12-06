@@ -18,13 +18,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 @DisplayName("HolidayEntityMapper 테스트")
-class HolidayEntityMapperTest {
+class HolidayMapperTest {
 
-  private HolidayEntityMapper mapper;
+  private HolidayMapper mapper;
 
   @BeforeEach
   void setUp() {
-    mapper = new HolidayEntityMapper();
+    mapper = new HolidayMapper();
   }
 
   /**

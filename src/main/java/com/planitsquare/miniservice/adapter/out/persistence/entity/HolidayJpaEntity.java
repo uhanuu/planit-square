@@ -39,10 +39,10 @@ public class HolidayJpaEntity {
   @JoinColumn(name = "country_code", referencedColumnName = "code", nullable = false)
   private CountryJpaEntity country;
 
-  @Column(name = "local_name", nullable = false, length = 100)
+  @Column(name = "local_name", nullable = false, length = 200)
   private String localName;
 
-  @Column(name = "name", nullable = false, length = 100)
+  @Column(name = "name", nullable = false, length = 200)
   private String name;
 
   @Column(name = "date", nullable = false)

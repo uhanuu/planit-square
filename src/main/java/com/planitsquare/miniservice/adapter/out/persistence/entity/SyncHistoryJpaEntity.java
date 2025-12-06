@@ -21,7 +21,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "sync_history", indexes = {
     @Index(name = "idx_sync_country", columnList = "country_code"),
-    @Index(name = "idx_sync_year", columnList = "year"),
+    @Index(name = "idx_sync_year", columnList = "`year`"),
     @Index(name = "idx_sync_status", columnList = "sync_status"),
     @Index(name = "idx_execution_type", columnList = "execution_type"),
     @Index(name = "idx_synced_at", columnList = "synced_at")

@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
  * @since 1.0
  */
 @Component
-public class HolidayEntityMapper {
+public class HolidayMapper {
 
   /**
    * 도메인 Holiday를 JPA Entity로 변환합니다.

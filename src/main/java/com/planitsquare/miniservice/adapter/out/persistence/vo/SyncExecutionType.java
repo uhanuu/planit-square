@@ -3,6 +3,8 @@ package com.planitsquare.miniservice.adapter.out.persistence.vo;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+import java.util.Arrays;
+
 /**
  * 동기화 작업의 실행 타입을 나타내는 Enum.
  *
@@ -62,6 +64,13 @@ public enum SyncExecutionType {
   private final String description;
   private final boolean automatic;
 
+  public static SyncExecutionType findByName(String displayName) {
+    return Arrays.stream(values())
+        .filter(e -> e.name().equalsIgnoreCase(displayName))
+        .findFirst()
+        .orElseThrow(() -> new IllegalArgumentException(displayName + "은 존재하지 않는 동기화 방식 입니다."));
+  }
+
   /**
    * 자동 실행 타입인지 확인합니다.
    *
@@ -78,5 +87,14 @@ public enum SyncExecutionType {
    */
   public boolean isManual() {
     return !this.automatic;
+  }
+
+  /**
+   * 최초 시스템 적재인지 확인합니다.
+   *
+   * @return 최초 시스템 적재면 true
+   */
+  public boolean isInitialSystemLoad() {
+    return this == INITIAL_SYSTEM_LOAD;
   }
 }

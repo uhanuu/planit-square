@@ -1,4 +1,4 @@
-package com.planitsquare.miniservice.adapter.out.api.holiday;
+package com.planitsquare.miniservice.adapter.out.api;
 
 import lombok.Getter;
 import org.springframework.boot.context.properties.ConfigurationProperties;

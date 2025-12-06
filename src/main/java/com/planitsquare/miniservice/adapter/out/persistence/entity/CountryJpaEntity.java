@@ -26,7 +26,7 @@ public class CountryJpaEntity extends BaseTimeEntity {
   @Column(name = "code", nullable = false, unique = true, length = 10)
   private String code;
 
-  @Column(name = "name", nullable = false, length = 100)
+  @Column(name = "name", nullable = false, length = 200)
   private String name;
 
   /**
