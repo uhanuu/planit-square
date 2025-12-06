@@ -232,24 +232,6 @@ refactor(structural): Extract OrderValidator from Order
 refactor(structural): Rename calculatePrice to calculateTotal
 ```
 
-### plan.md 기반 워크플로우
-
-**"go" 명령 시 절차:**
-1. `plan.md`에서 다음 미완료 테스트 찾기
-2. 해당 테스트 구현 (RED)
-3. 테스트 통과를 위한 최소 코드 작성 (GREEN)
-4. 필요시 리팩토링 (REFACTOR)
-5. `plan.md`에 완료 표시
-6. 커밋 (structural/behavioral 분리)
-
-**Example plan.md:**
-```markdown
-## 주문 생성 기능
-- [ ] 유효한_주문_생성시_주문ID를_반환한다
-- [ ] 재고가_부족하면_예외를_던진다
-- [ ] 고객이_존재하지_않으면_예외를_던진다
-```
-
 ### Coverage Requirements
 - **Domain Model**: 100% (핵심 비즈니스 로직)
 - **Application Service**: 90%+

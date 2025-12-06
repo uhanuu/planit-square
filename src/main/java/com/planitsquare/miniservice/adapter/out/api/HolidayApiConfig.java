@@ -1,4 +1,4 @@
-package com.planitsquare.miniservice.adapter.out.api.holiday;
+package com.planitsquare.miniservice.adapter.out.api;
 
 import java.time.Duration;
 
