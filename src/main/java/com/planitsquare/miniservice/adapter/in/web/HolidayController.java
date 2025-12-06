@@ -1,5 +1,7 @@
 package com.planitsquare.miniservice.adapter.in.web;
 
+import com.planitsquare.miniservice.adapter.out.persistence.vo.SyncExecutionType;
+import com.planitsquare.miniservice.application.port.in.UploadHolidayCommand;
 import com.planitsquare.miniservice.application.port.in.UploadHolidaysUseCase;
 import com.planitsquare.miniservice.common.WebAdapter;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,7 +31,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1")
 public class HolidayController {
   private final UploadHolidaysUseCase uploadHolidaysUseCase;
-  private final UploadHolidayRequestMapper requestMapper;
 
   /**
    * 외부 API로부터 휴일 데이터를 가져와 저장합니다.
@@ -48,6 +49,8 @@ public class HolidayController {
   @PostMapping("/holidays")
   @ResponseStatus(HttpStatus.ACCEPTED)
   public void uploadHolidays(@Valid @RequestBody UploadHolidayRequest request) {
-    uploadHolidaysUseCase.uploadHolidays(requestMapper.toCommand(request));
+    uploadHolidaysUseCase.uploadHolidays(
+        new UploadHolidayCommand(request.year(), SyncExecutionType.MANUAL_EXECUTION)
+    );
   }
 }

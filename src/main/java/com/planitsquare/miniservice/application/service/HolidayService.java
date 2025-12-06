@@ -4,11 +4,11 @@ import com.planitsquare.miniservice.adapter.out.persistence.vo.SyncExecutionType
 import com.planitsquare.miniservice.application.port.in.UploadHolidayCommand;
 import com.planitsquare.miniservice.application.port.in.UploadHolidaysUseCase;
 import com.planitsquare.miniservice.application.port.out.*;
+import com.planitsquare.miniservice.common.UseCase;
 import com.planitsquare.miniservice.domain.model.Holiday;
 import com.planitsquare.miniservice.domain.vo.Country;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,7 +21,7 @@ import java.util.List;
  *
  * @since 1.0
  */
-@Service
+@UseCase
 @RequiredArgsConstructor
 @Slf4j
 public class HolidayService implements UploadHolidaysUseCase {

@@ -33,4 +33,3 @@ external-api:
   endpoints:
     available-countries: /AvailableCountries
     public-holidays: /PublicHolidays/{year}/{countryCode}
-

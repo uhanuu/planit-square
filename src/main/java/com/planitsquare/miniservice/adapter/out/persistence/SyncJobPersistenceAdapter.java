@@ -66,4 +66,9 @@ public class SyncJobPersistenceAdapter implements SyncJobPort {
     job.complete(LocalDateTime.now());
     log.info("Job 완료 - Job ID: {} 실행시간: {}", jobId, Duration.between(job.getStartTime(), job.getEndTime()).toMillis());
   }
+
+  @Override
+  public boolean isInitialSystemLoad() {
+    return !syncJobJpaRepository.existsByIdIsNotNull();
+  }
 }

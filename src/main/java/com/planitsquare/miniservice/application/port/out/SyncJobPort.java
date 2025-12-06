@@ -34,4 +34,11 @@ public interface SyncJobPort {
    * @since 1.0
    */
   void completeJob(Long jobId);
+
+  /**
+   * 실행 했던 Job이 있는지 판단합니다.
+   *
+   * @return 실행했던 Job이 존재하는 경우 false를 반환합니다.
+   */
+  boolean isInitialSystemLoad();
 }

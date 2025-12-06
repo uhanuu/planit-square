@@ -22,11 +22,15 @@ public interface SyncJobJpaRepository extends JpaRepository<SyncJobJpaEntity, Lo
   boolean existsByStatus(JobStatus status);
 
   /**
-   * 특정 상태의 가장 최근 Job을 조회합니다.
+   * 테이블에 하나 이상의 Job 데이터가 존재하는지 확인합니다.
+   * <p>
+   * 이 메서드는 기본 키(id)가 null이 아닌 레코드가 있는지를 조회하여,
+   * 테이블에 데이터가 하나라도 존재하면 {@code true} 를 반환합니다.
+   * 전체 레코드를 대상으로 카운트를 수행하는 {@link JpaRepository#count()} 대비
+   * 더 빠르게 존재 여부를 판단할 수 있습니다.
    *
-   * @param status Job 상태
-   * @return 가장 최근 Job, 없으면 {@link Optional#empty()}
+   * @return Job 데이터가 하나 이상 존재하면 {@code true}, 그렇지 않으면 {@code false}
    * @since 1.0
    */
-  Optional<SyncJobJpaEntity> findFirstByStatusOrderByStartTimeDesc(JobStatus status);
+  boolean existsByIdIsNotNull();
 }
