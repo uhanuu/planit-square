@@ -32,6 +32,11 @@ public class CountryAdapter implements FindCountryPort, SaveAllCountriesPort {
   }
 
   @Override
+  public boolean existsByCode(String code) {
+    return countryRepository.existsById(code);
+  }
+
+  @Override
   public void saveAllCountries(List<Country> countries) {
     List<com.planitsquare.miniservice.adapter.out.persistence.entity.CountryJpaEntity> entities =
         countries.stream()

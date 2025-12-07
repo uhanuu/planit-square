@@ -1,6 +1,5 @@
-package com.planitsquare.miniservice.adapter.in.web;
+package com.planitsquare.miniservice.adapter.in.web.dto.request;
 
-import com.planitsquare.miniservice.application.service.YearPolicy;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
@@ -16,7 +15,4 @@ public record UploadHolidayRequest(
     @Schema(description = "조회할 년도", example = "2025")
     int year
 ) {
-  public UploadHolidayRequest {
-    YearPolicy.requireAtLeastMinYear(year);
-  }
 }

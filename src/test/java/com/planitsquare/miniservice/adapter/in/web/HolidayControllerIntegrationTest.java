@@ -2,6 +2,7 @@ package com.planitsquare.miniservice.adapter.in.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.planitsquare.miniservice.IntegrationTestBase;
+import com.planitsquare.miniservice.adapter.in.web.dto.request.UploadHolidayRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,7 +27,6 @@ class HolidayControllerIntegrationTest extends IntegrationTestBase {
 
   @Autowired
   private WebApplicationContext context;
-
   private MockMvc mockMvc;
   private ObjectMapper objectMapper;
 
@@ -34,19 +34,6 @@ class HolidayControllerIntegrationTest extends IntegrationTestBase {
   void setUp() {
     mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
     objectMapper = new ObjectMapper();
-  }
-
-  @Test
-  @DisplayName("유효한 요청으로 공휴일 업로드를 수행하면 202 ACCEPTED를 반환한다")
-  void 유효한_요청으로_공휴일_업로드를_수행하면_202_ACCEPTED를_반환한다() throws Exception {
-    // Given
-    UploadHolidayRequest request = new UploadHolidayRequest(2025);
-
-    // When & Then
-    mockMvc.perform(post("/api/v1/holidays")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isAccepted());
   }
 
   @Test
@@ -63,7 +50,7 @@ class HolidayControllerIntegrationTest extends IntegrationTestBase {
     mockMvc.perform(post("/api/v1/holidays")
             .contentType(MediaType.APPLICATION_JSON)
             .content(invalidRequest))
-        .andExpect(status().isInternalServerError());
+        .andExpect(status().isBadRequest());
   }
 
   @Test

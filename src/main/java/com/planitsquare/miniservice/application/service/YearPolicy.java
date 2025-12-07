@@ -2,6 +2,8 @@ package com.planitsquare.miniservice.application.service;
 
 import lombok.Getter;
 
+import java.time.LocalDateTime;
+
 /**
  * 연도 정책을 정의하는 Enum.
  *
@@ -41,19 +43,29 @@ public enum YearPolicy {
   }
 
   /**
-   * 입력된 연도가 최소 허용 연도 이상인지 검증합니다.
+   * 입력된 연도가 유효한 범위 내에 있는지 검증합니다.
    *
-   * <p>정책을 충족하지 않으면 예외를 발생시킵니다.
+   * <p>연도는 최소 허용 연도(2000년) 이상이면서 현재 연도 이하여야 합니다.
+   * 정책을 충족하지 않으면 예외를 발생시킵니다.
    *
    * @param year 검증할 연도
-   * @throws IllegalArgumentException 입력된 연도가 최소 허용 연도 미만인 경우
+   * @throws IllegalArgumentException 입력된 연도가 유효 범위를 벗어난 경우
    * @since 1.0
    */
   public static void requireAtLeastMinYear(int year) {
+    int currentYear = LocalDateTime.now().getYear();
+
     if (!isAtLeastMinYear(year)) {
       throw new IllegalArgumentException(
           "지원되지 않는 연도입니다. 최소 허용 연도: %d, 입력값: %d"
               .formatted(MIN_YEAR.value, year)
+      );
+    }
+
+    if (year > currentYear) {
+      throw new IllegalArgumentException(
+          "미래 연도는 지원되지 않습니다. 현재 연도: %d, 입력값: %d"
+              .formatted(currentYear, year)
       );
     }
   }

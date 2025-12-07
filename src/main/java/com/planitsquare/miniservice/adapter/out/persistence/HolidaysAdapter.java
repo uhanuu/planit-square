@@ -5,16 +5,19 @@ import com.planitsquare.miniservice.adapter.out.persistence.entity.HolidayJpaEnt
 import com.planitsquare.miniservice.adapter.out.persistence.mapper.CountryMapper;
 import com.planitsquare.miniservice.adapter.out.persistence.mapper.HolidayMapper;
 import com.planitsquare.miniservice.adapter.out.persistence.repository.HolidayJpaRepository;
+import com.planitsquare.miniservice.application.port.out.DeleteHolidaysPort;
 import com.planitsquare.miniservice.application.port.out.SaveAllHolidaysPort;
 import com.planitsquare.miniservice.common.PersistenceAdapter;
 import com.planitsquare.miniservice.domain.model.Holiday;
+import com.planitsquare.miniservice.domain.vo.CountryCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @PersistenceAdapter
 @RequiredArgsConstructor
-public class HolidaysAdapter implements SaveAllHolidaysPort {
+public class HolidaysAdapter implements SaveAllHolidaysPort, DeleteHolidaysPort {
   private final HolidayJpaRepository holidayJpaRepository;
   private final HolidayMapper holidayMapper;
   private final CountryMapper countryMapper;
@@ -26,6 +29,12 @@ public class HolidaysAdapter implements SaveAllHolidaysPort {
         .toList();
 
     holidayJpaRepository.saveAll(holidayJpaEntities);
+  }
+
+  @Override
+  @Transactional
+  public int deleteByYearAndCountryCode(int year, CountryCode countryCode) {
+    return holidayJpaRepository.deleteByCountryCodeAndYear(countryCode.code(), year);
   }
 
   private HolidayJpaEntity toEntity(Holiday holiday) {

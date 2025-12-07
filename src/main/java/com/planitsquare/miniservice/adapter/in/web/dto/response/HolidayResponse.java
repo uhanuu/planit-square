@@ -1,4 +1,4 @@
-package com.planitsquare.miniservice.adapter.in.web.dto;
+package com.planitsquare.miniservice.adapter.in.web.dto.response;
 
 import com.planitsquare.miniservice.domain.model.Holiday;
 import lombok.Builder;
@@ -16,7 +16,7 @@ import java.util.List;
  */
 @Getter
 @Builder
-public class HolidayResponseDto {
+public class HolidayResponse {
 
   /**
    * 공휴일 ID.
@@ -79,8 +79,8 @@ public class HolidayResponseDto {
    * @param holiday Holiday 도메인 객체
    * @return HolidayResponseDto
    */
-  public static HolidayResponseDto from(Holiday holiday) {
-    return HolidayResponseDto.builder()
+  public static HolidayResponse from(Holiday holiday) {
+    return HolidayResponse.builder()
         .id(holiday.getId().value())
         .countryCode(holiday.getCountry().getCode())
         .countryName(holiday.getCountry().getName())

@@ -1,5 +1,6 @@
 package com.planitsquare.miniservice.application.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -12,6 +13,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
 import com.planitsquare.miniservice.adapter.out.persistence.vo.SyncExecutionType;
+import com.planitsquare.miniservice.application.port.in.DeleteHolidaysCommand;
 import com.planitsquare.miniservice.application.port.in.UploadHolidayCommand;
 import com.planitsquare.miniservice.application.port.out.*;
 import com.planitsquare.miniservice.domain.model.Holiday;
@@ -38,6 +40,7 @@ class HolidayServiceTest {
   @Mock private FetchCountriesPort fetchCountriesPort;
   @Mock private SaveAllCountriesPort saveAllCountriesPort;
   @Mock private SaveAllHolidaysPort saveAllHolidaysPort;
+  @Mock private DeleteHolidaysPort deleteHolidaysPort;
   @Mock private RecordSyncHistoryPort recordSyncHistoryPort;
   @Mock private SyncJobPort syncJobPort;
   @Mock private HolidaySyncService holidaySyncService;
@@ -182,6 +185,53 @@ class HolidayServiceTest {
         then(holidaySyncService).should(times(expectedCalls))
             .syncHolidaysForCountryAndYear(any(SyncHolidayCommand.class));
       }
+    }
+  }
+
+  @Nested
+  @DisplayName("deleteHolidays 테스트")
+  class DeleteHolidaysTest {
+
+    @Test
+    @DisplayName("특정 연도와 국가의 공휴일을 삭제하고 삭제 건수를 반환한다")
+    void 특정_연도와_국가의_공휴일을_삭제하고_삭제_건수를_반환한다() {
+      // Given
+      int year = 2024;
+      CountryCode countryCode = new CountryCode("KR");
+      DeleteHolidaysCommand command = new DeleteHolidaysCommand(year, countryCode);
+
+      given(findCountryPort.existsByCode(countryCode.code())).willReturn(true);
+      given(deleteHolidaysPort.deleteByYearAndCountryCode(year, countryCode))
+          .willReturn(10);
+
+      // When
+      int deletedCount = holidayService.deleteHolidays(command);
+
+      // Then
+      assertThat(deletedCount).isEqualTo(10);
+      then(findCountryPort).should().existsByCode(countryCode.code());
+      then(deleteHolidaysPort).should().deleteByYearAndCountryCode(year, countryCode);
+    }
+
+    @Test
+    @DisplayName("삭제할 데이터가 없으면 0을 반환한다")
+    void 삭제할_데이터가_없으면_0을_반환한다() {
+      // Given
+      int year = 2024;
+      CountryCode countryCode = new CountryCode("JP");
+      DeleteHolidaysCommand command = new DeleteHolidaysCommand(year, countryCode);
+
+      given(findCountryPort.existsByCode(countryCode.code())).willReturn(true);
+      given(deleteHolidaysPort.deleteByYearAndCountryCode(year, countryCode))
+          .willReturn(0);
+
+      // When
+      int deletedCount = holidayService.deleteHolidays(command);
+
+      // Then
+      assertThat(deletedCount).isEqualTo(0);
+      then(findCountryPort).should().existsByCode(countryCode.code());
+      then(deleteHolidaysPort).should().deleteByYearAndCountryCode(year, countryCode);
     }
   }
 }

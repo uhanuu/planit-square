@@ -1,9 +1,8 @@
 package com.planitsquare.miniservice.adapter.in.web;
 
-import com.planitsquare.miniservice.adapter.in.web.dto.HolidayResponseDto;
+import com.planitsquare.miniservice.adapter.in.web.dto.response.HolidayResponse;
 import com.planitsquare.miniservice.application.port.in.SearchHolidaysQuery;
 import com.planitsquare.miniservice.application.port.in.SearchHolidaysUseCase;
-import com.planitsquare.miniservice.domain.model.Holiday;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -49,7 +48,7 @@ public class HolidaySearchController {
    */
   @Operation(summary = "공휴일 검색", description = "다양한 조건으로 공휴일을 검색합니다.")
   @GetMapping
-  public ResponseEntity<Page<HolidayResponseDto>> searchHolidays(
+  public ResponseEntity<Page<HolidayResponse>> searchHolidays(
       @Parameter(description = "연도", example = "2024")
       @RequestParam(required = false) Integer year,
 
@@ -80,6 +79,6 @@ public class HolidaySearchController {
         .pageable(pageable)
         .build();
 
-    return ResponseEntity.ok(searchHolidaysUseCase.search(query).map(HolidayResponseDto::from));
+    return ResponseEntity.ok(searchHolidaysUseCase.search(query).map(HolidayResponse::from));
   }
 }
