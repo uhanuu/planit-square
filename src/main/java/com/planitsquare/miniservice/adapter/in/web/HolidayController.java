@@ -1,19 +1,26 @@
 package com.planitsquare.miniservice.adapter.in.web;
 
 import com.planitsquare.miniservice.adapter.out.persistence.vo.SyncExecutionType;
+import com.planitsquare.miniservice.application.port.in.DeleteHolidaysCommand;
+import com.planitsquare.miniservice.application.port.in.DeleteHolidaysUseCase;
 import com.planitsquare.miniservice.application.port.in.UploadHolidayCommand;
 import com.planitsquare.miniservice.application.port.in.UploadHolidaysUseCase;
 import com.planitsquare.miniservice.common.WebAdapter;
+import com.planitsquare.miniservice.domain.vo.CountryCode;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -31,6 +38,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1")
 public class HolidayController {
   private final UploadHolidaysUseCase uploadHolidaysUseCase;
+  private final DeleteHolidaysUseCase deleteHolidaysUseCase;
 
   /**
    * 외부 API로부터 휴일 데이터를 가져와 저장합니다.
@@ -47,10 +55,40 @@ public class HolidayController {
       @ApiResponse(responseCode = "500", description = "서버 내부 오류")
   })
   @PostMapping("/holidays")
-  @ResponseStatus(HttpStatus.ACCEPTED)
-  public void uploadHolidays(@Valid @RequestBody UploadHolidayRequest request) {
+  public ResponseEntity<Void> uploadHolidays(@Valid @RequestBody UploadHolidayRequest request) {
     uploadHolidaysUseCase.uploadHolidays(
         new UploadHolidayCommand(request.year(), SyncExecutionType.MANUAL_EXECUTION)
     );
+
+    return ResponseEntity.status(HttpStatus.ACCEPTED).build();
+  }
+
+  /**
+   * 특정 연도와 국가의 공휴일 데이터를 삭제합니다.
+   *
+   * @param year 삭제할 연도
+   * @param countryCode 삭제할 국가 코드
+   * @return 삭제된 공휴일 건수를 포함한 응답
+   */
+  @Operation(
+      summary = "공휴일 데이터 삭제",
+      description = "특정 연도와 국가의 공휴일 데이터를 데이터베이스에서 삭제합니다."
+  )
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "삭제 성공"),
+      @ApiResponse(responseCode = "400", description = "잘못된 요청 (유효하지 않은 년도 또는 국가 코드)"),
+      @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+  })
+  @DeleteMapping("/holidays")
+  public ResponseEntity<DeleteHolidayResponse> deleteHolidays(
+      @Parameter(description = "삭제할 연도", example = "2024", required = true)
+      @RequestParam int year,
+      @Parameter(description = "삭제할 국가 코드", example = "KR", required = true)
+      @RequestParam String countryCode
+  ) {
+    DeleteHolidaysCommand command = new DeleteHolidaysCommand(year, new CountryCode(countryCode));
+    int deletedCount = deleteHolidaysUseCase.deleteHolidays(command);
+
+    return ResponseEntity.ok(new DeleteHolidayResponse(deletedCount));
   }
 }
