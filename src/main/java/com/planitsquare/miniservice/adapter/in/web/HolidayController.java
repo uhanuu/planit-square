@@ -77,7 +77,8 @@ public class HolidayController {
   )
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "삭제 성공"),
-      @ApiResponse(responseCode = "400", description = "잘못된 요청 (유효하지 않은 년도 또는 국가 코드)"),
+      @ApiResponse(responseCode = "400", description = "잘못된 요청 (유효하지 않은 년도)"),
+      @ApiResponse(responseCode = "404", description = "존재하지 않는 국가 코드"),
       @ApiResponse(responseCode = "500", description = "서버 내부 오류")
   })
   @DeleteMapping("/holidays/{year}/{countryCode}")
