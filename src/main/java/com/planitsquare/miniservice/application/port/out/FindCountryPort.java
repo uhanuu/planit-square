@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface FindCountryPort {
   List<Country> findAll();
+  boolean existsByCode(String code);
 }
