@@ -2,8 +2,11 @@ package com.planitsquare.miniservice.application.service;
 
 import com.planitsquare.miniservice.adapter.out.persistence.vo.SyncExecutionType;
 import com.planitsquare.miniservice.application.annotation.SyncJob;
+import com.planitsquare.miniservice.application.port.in.DeleteHolidaysCommand;
+import com.planitsquare.miniservice.application.port.in.DeleteHolidaysUseCase;
 import com.planitsquare.miniservice.application.port.in.UploadHolidayCommand;
 import com.planitsquare.miniservice.application.port.in.UploadHolidaysUseCase;
+import com.planitsquare.miniservice.application.port.out.DeleteHolidaysPort;
 import com.planitsquare.miniservice.application.port.out.FetchCountriesPort;
 import com.planitsquare.miniservice.application.port.out.FindCountryPort;
 import com.planitsquare.miniservice.application.port.out.SaveAllCountriesPort;
@@ -18,7 +21,7 @@ import java.util.List;
 /**
  * 공휴일 관리 Application Service.
  *
- * <p>공휴일 데이터의 업로드, 조회, 관리 기능을 제공하는 Use Case 구현체입니다.
+ * <p>공휴일 데이터의 업로드, 조회, 삭제, 관리 기능을 제공하는 Use Case 구현체입니다.
  * 외부 API를 통해 국가별 공휴일 정보를 가져와 저장합니다.
  *
  * @since 1.0
@@ -26,10 +29,11 @@ import java.util.List;
 @UseCase
 @RequiredArgsConstructor
 @Slf4j
-public class HolidayService implements UploadHolidaysUseCase {
+public class HolidayService implements UploadHolidaysUseCase, DeleteHolidaysUseCase {
   private final FindCountryPort findCountryPort;
   private final FetchCountriesPort fetchCountriesPort;
   private final SaveAllCountriesPort saveAllCountriesPort;
+  private final DeleteHolidaysPort deleteHolidaysPort;
   private final HolidaySyncService holidaySyncService;
 
   /**
@@ -105,5 +109,27 @@ public class HolidayService implements UploadHolidaysUseCase {
 
     log.debug("데이터베이스에서 국가 목록 조회");
     return findCountryPort.findAll();
+  }
+
+  /**
+   * 특정 연도와 국가의 공휴일을 삭제합니다.
+   *
+   * @param command 삭제 커맨드 (연도 및 국가 코드 포함)
+   * @return 삭제된 공휴일 건수
+   */
+  @Override
+  public int deleteHolidays(DeleteHolidaysCommand command) {
+    log.info("공휴일 삭제 시작 - 연도: {}, 국가 코드: {}",
+        command.year(), command.countryCode().code());
+
+    int deletedCount = deleteHolidaysPort.deleteByYearAndCountryCode(
+        command.year(),
+        command.countryCode()
+    );
+
+    log.info("공휴일 삭제 완료 - 연도: {}, 국가 코드: {}, 삭제 건수: {}",
+        command.year(), command.countryCode().code(), deletedCount);
+
+    return deletedCount;
   }
 }
