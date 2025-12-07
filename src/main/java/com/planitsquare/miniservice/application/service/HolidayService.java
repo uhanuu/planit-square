@@ -3,18 +3,17 @@ package com.planitsquare.miniservice.application.service;
 import com.planitsquare.miniservice.adapter.out.persistence.vo.SyncExecutionType;
 import com.planitsquare.miniservice.application.annotation.SyncJob;
 import com.planitsquare.miniservice.application.exception.CountryNotFoundException;
-import com.planitsquare.miniservice.application.port.in.DeleteHolidaysCommand;
-import com.planitsquare.miniservice.application.port.in.DeleteHolidaysUseCase;
-import com.planitsquare.miniservice.application.port.in.UploadHolidayCommand;
-import com.planitsquare.miniservice.application.port.in.UploadHolidaysUseCase;
+import com.planitsquare.miniservice.application.port.in.*;
 import com.planitsquare.miniservice.application.port.out.DeleteHolidaysPort;
 import com.planitsquare.miniservice.application.port.out.FetchCountriesPort;
 import com.planitsquare.miniservice.application.port.out.FindCountryPort;
 import com.planitsquare.miniservice.application.port.out.SaveAllCountriesPort;
 import com.planitsquare.miniservice.application.util.JobIdContext;
 import com.planitsquare.miniservice.common.UseCase;
+import com.planitsquare.miniservice.domain.model.Holiday;
 import com.planitsquare.miniservice.domain.vo.Country;
 import com.planitsquare.miniservice.domain.vo.CountryCode;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -31,7 +30,7 @@ import java.util.List;
 @UseCase
 @RequiredArgsConstructor
 @Slf4j
-public class HolidayService implements UploadHolidaysUseCase, DeleteHolidaysUseCase {
+public class HolidayService implements UploadHolidaysUseCase, DeleteHolidaysUseCase, RefreshHolidaysUseCase {
   private final FindCountryPort findCountryPort;
   private final FetchCountriesPort fetchCountriesPort;
   private final SaveAllCountriesPort saveAllCountriesPort;
@@ -124,21 +123,69 @@ public class HolidayService implements UploadHolidaysUseCase, DeleteHolidaysUseC
   public int deleteHolidays(DeleteHolidaysCommand command) {
     final int year = command.year();
     final CountryCode countryCode = command.countryCode();
-    YearPolicy.requireAtLeastMinYear(year);
     log.info("공휴일 삭제 시작 - 연도: {}, 국가 코드: {}",
         year, countryCode.code());
 
-    if (!findCountryPort.existsByCode(countryCode.code())) {
-      throw new CountryNotFoundException("해당하는 국가 코드가 존재하지 않습니다.");
-    }
+    YearPolicy.requireAtLeastMinYear(year);
+    validateCountryExists(countryCode);
+
     int deletedCount = deleteHolidaysPort.deleteByYearAndCountryCode(
         year,
         command.countryCode()
     );
-
     log.info("공휴일 삭제 완료 - 연도: {}, 국가 코드: {}, 삭제 건수: {}",
         command.year(), command.countryCode().code(), deletedCount);
 
     return deletedCount;
   }
+
+  @SyncJob(executionType = "#command.executionType()")
+  @Transactional
+  @Override
+  public RefreshHolidayDto refreshHolidays(RefreshHolidaysCommand command) {
+    final int year = command.year();
+    YearPolicy.requireAtLeastMinYear(year);
+    final CountryCode countryCode = command.countryCode();
+    log.info("공휴일 덮어쓰기 시작 - 연도: {}, 국가 코드: {}", year, countryCode.code());
+
+    final Country country = getCountryByCode(countryCode);
+
+    SyncHolidayCommand syncCommand = new SyncHolidayCommand(
+        JobIdContext.getJobId(),
+        country,
+        year
+    );
+
+    final int deletedCount = deleteHolidaysPort.deleteByYearAndCountryCode(year, command.countryCode());
+    final List<Holiday> holidays = holidaySyncService.syncHolidaysForCountryAndYear(syncCommand);
+
+    return new RefreshHolidayDto(deletedCount, holidays.size());
+  }
+
+  /**
+   * 국가 코드의 존재 여부를 검증합니다.
+   *
+   * @param countryCode 검증할 국가 코드
+   * @throws CountryNotFoundException 국가 코드가 존재하지 않는 경우
+   * @since 1.0
+   */
+  private void validateCountryExists(CountryCode countryCode) {
+    if (!findCountryPort.existsByCode(countryCode.code())) {
+      throw new CountryNotFoundException(countryCode.code() + "의 해당하는 국가 코드가 존재하지 않습니다.");
+    }
+  }
+
+  /**
+   * 국가 코드로 국가 정보를 조회합니다.
+   *
+   * @param countryCode 조회할 국가 코드
+   * @return 국가 정보
+   * @throws CountryNotFoundException 국가 코드가 존재하지 않는 경우
+   * @since 1.0
+   */
+  private Country getCountryByCode(CountryCode countryCode) {
+    return findCountryPort.findByCode(countryCode.code())
+        .orElseThrow(() -> new CountryNotFoundException(countryCode.code() + "의 해당하는 국가 코드가 존재하지 않습니다."));
+  }
+
 }

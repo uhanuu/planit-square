@@ -9,6 +9,7 @@ import com.planitsquare.miniservice.domain.vo.Country;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 국가 조회 및 저장 Port의 Persistence Adapter 구현체.
@@ -34,6 +35,12 @@ public class CountryAdapter implements FindCountryPort, SaveAllCountriesPort {
   @Override
   public boolean existsByCode(String code) {
     return countryRepository.existsById(code);
+  }
+
+  @Override
+  public Optional<Country> findByCode(String code) {
+    return countryRepository.findById(code)
+        .map(countryMapper::toDomain);
   }
 
   @Override

@@ -1,12 +1,11 @@
 package com.planitsquare.miniservice.adapter.in.web;
 
+import com.planitsquare.miniservice.adapter.in.web.dto.request.RefreshHolidayRequest;
 import com.planitsquare.miniservice.adapter.in.web.dto.request.UploadHolidayRequest;
 import com.planitsquare.miniservice.adapter.in.web.dto.response.DeleteHolidayResponse;
+import com.planitsquare.miniservice.adapter.in.web.dto.response.RefreshHolidayResponse;
 import com.planitsquare.miniservice.adapter.out.persistence.vo.SyncExecutionType;
-import com.planitsquare.miniservice.application.port.in.DeleteHolidaysCommand;
-import com.planitsquare.miniservice.application.port.in.DeleteHolidaysUseCase;
-import com.planitsquare.miniservice.application.port.in.UploadHolidayCommand;
-import com.planitsquare.miniservice.application.port.in.UploadHolidaysUseCase;
+import com.planitsquare.miniservice.application.port.in.*;
 import com.planitsquare.miniservice.common.WebAdapter;
 import com.planitsquare.miniservice.domain.vo.CountryCode;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,12 +17,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 휴일 관련 API 컨트롤러.
@@ -38,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1")
 public class HolidayController {
+  private final RefreshHolidaysUseCase refreshHolidaysUseCase;
   private final UploadHolidaysUseCase uploadHolidaysUseCase;
   private final DeleteHolidaysUseCase deleteHolidaysUseCase;
 
@@ -62,6 +57,36 @@ public class HolidayController {
     );
 
     return ResponseEntity.status(HttpStatus.ACCEPTED).build();
+  }
+
+  /**
+   * 외부 API로부터 휴일 데이터를 가져와 최신값으로 덮어쓰기합니다.
+   *
+   * @param request 휴일 데이터 덮어쓰기 요청
+   */
+  @Operation(
+      summary = "휴일 데이터 덮어쓰기",
+      description = "외부 API로부터 특정 년도의 휴일 데이터를 가져와 기존 데이터를 삭제하고 최신값으로 갱신합니다."
+  )
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "업로드 요청이 성공적으로 처리됨"),
+      @ApiResponse(responseCode = "400", description = "잘못된 요청 (유효하지 않은 년도)"),
+      @ApiResponse(responseCode = "404", description = "존재하지 않는 국가 코드"),
+      @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+  })
+  @PutMapping("/holidays")
+  public ResponseEntity<RefreshHolidayResponse> refreshHolidays(@Valid @RequestBody RefreshHolidayRequest request) {
+    RefreshHolidaysCommand command = new RefreshHolidaysCommand(
+        request.year(),
+        new CountryCode(request.countryCode()),
+        SyncExecutionType.API_REFRESH
+    );
+    RefreshHolidayDto refreshHolidayDto = refreshHolidaysUseCase.refreshHolidays(command);
+
+    return ResponseEntity.ok(new RefreshHolidayResponse(
+        refreshHolidayDto.deleteCount(),
+        refreshHolidayDto.insertCount()
+    ));
   }
 
   /**

@@ -54,16 +54,16 @@ class HolidayControllerIntegrationTest extends IntegrationTestBase {
   }
 
   @Test
-  @DisplayName("year 필드가 누락된 요청 시 500 Internal Server Error를 반환한다")
-  void year_필드가_누락된_요청시_500_Internal_Server_Error를_반환한다() throws Exception {
-    // Given - 필수 필드 누락은 deserialization 과정에서 500으로 처리됨
+  @DisplayName("year 필드가 누락된 요청 시 400 Bad Request를 반환한다")
+  void year_필드가_누락된_요청시_400_Bad_Request를_반환한다() throws Exception {
+    // Given - 필수 필드 누락은 validation 과정에서 400으로 처리됨
     String invalidRequest = "{}";
 
     // When & Then
     mockMvc.perform(post("/api/v1/holidays")
             .contentType(MediaType.APPLICATION_JSON)
             .content(invalidRequest))
-        .andExpect(status().isInternalServerError());
+        .andExpect(status().isBadRequest());
   }
 
   @Test

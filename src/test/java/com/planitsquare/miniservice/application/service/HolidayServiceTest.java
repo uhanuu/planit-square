@@ -2,6 +2,7 @@ package com.planitsquare.miniservice.application.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -13,7 +14,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
 import com.planitsquare.miniservice.adapter.out.persistence.vo.SyncExecutionType;
+import com.planitsquare.miniservice.application.exception.CountryNotFoundException;
 import com.planitsquare.miniservice.application.port.in.DeleteHolidaysCommand;
+import com.planitsquare.miniservice.application.port.in.RefreshHolidayDto;
+import com.planitsquare.miniservice.application.port.in.RefreshHolidaysCommand;
 import com.planitsquare.miniservice.application.port.in.UploadHolidayCommand;
 import com.planitsquare.miniservice.application.port.out.*;
 import com.planitsquare.miniservice.domain.model.Holiday;
@@ -232,6 +236,92 @@ class HolidayServiceTest {
       assertThat(deletedCount).isEqualTo(0);
       then(findCountryPort).should().existsByCode(countryCode.code());
       then(deleteHolidaysPort).should().deleteByYearAndCountryCode(year, countryCode);
+    }
+  }
+
+  @Nested
+  @DisplayName("refreshHolidays 테스트")
+  class RefreshHolidaysTest {
+
+    @Test
+    @DisplayName("특정 연도와 국가의 공휴일을 삭제하고 새로 조회하여 저장한다")
+    void 특정_연도와_국가의_공휴일을_삭제하고_새로_조회하여_저장한다() {
+      // Given
+      int year = 2024;
+      CountryCode countryCode = new CountryCode("KR");
+      RefreshHolidaysCommand command = new RefreshHolidaysCommand(
+          year,
+          countryCode,
+          SyncExecutionType.API_REFRESH
+      );
+
+      given(findCountryPort.findByCode(countryCode.code())).willReturn(java.util.Optional.of(KR));
+      given(deleteHolidaysPort.deleteByYearAndCountryCode(year, countryCode))
+          .willReturn(5);
+      given(holidaySyncService.syncHolidaysForCountryAndYear(any(SyncHolidayCommand.class)))
+          .willReturn(List.of(sampleHoliday, sampleHoliday, sampleHoliday));
+
+      // When
+      RefreshHolidayDto result = holidayService.refreshHolidays(command);
+
+      // Then
+      assertThat(result.deleteCount()).isEqualTo(5);
+      assertThat(result.insertCount()).isEqualTo(3);
+      then(findCountryPort).should().findByCode(countryCode.code());
+      then(deleteHolidaysPort).should().deleteByYearAndCountryCode(year, countryCode);
+      then(holidaySyncService).should().syncHolidaysForCountryAndYear(any(SyncHolidayCommand.class));
+    }
+
+    @Test
+    @DisplayName("삭제된 데이터가 없어도 새로운 데이터를 조회하여 저장한다")
+    void 삭제된_데이터가_없어도_새로운_데이터를_조회하여_저장한다() {
+      // Given
+      int year = 2024;
+      CountryCode countryCode = new CountryCode("US");
+      RefreshHolidaysCommand command = new RefreshHolidaysCommand(
+          year,
+          countryCode,
+          SyncExecutionType.API_REFRESH
+      );
+
+      given(findCountryPort.findByCode(countryCode.code())).willReturn(java.util.Optional.of(US));
+      given(deleteHolidaysPort.deleteByYearAndCountryCode(year, countryCode))
+          .willReturn(0);
+      given(holidaySyncService.syncHolidaysForCountryAndYear(any(SyncHolidayCommand.class)))
+          .willReturn(List.of(sampleHoliday));
+
+      // When
+      RefreshHolidayDto result = holidayService.refreshHolidays(command);
+
+      // Then
+      assertThat(result.deleteCount()).isEqualTo(0);
+      assertThat(result.insertCount()).isEqualTo(1);
+      then(findCountryPort).should().findByCode(countryCode.code());
+      then(deleteHolidaysPort).should().deleteByYearAndCountryCode(year, countryCode);
+      then(holidaySyncService).should().syncHolidaysForCountryAndYear(any(SyncHolidayCommand.class));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 국가 코드로 요청하면 예외를 던진다")
+    void 존재하지_않는_국가_코드로_요청하면_예외를_던진다() {
+      // Given
+      int year = 2024;
+      CountryCode countryCode = new CountryCode("XX");
+      RefreshHolidaysCommand command = new RefreshHolidaysCommand(
+          year,
+          countryCode,
+          SyncExecutionType.API_REFRESH
+      );
+
+      given(findCountryPort.findByCode(countryCode.code())).willReturn(java.util.Optional.empty());
+
+      // When & Then
+      assertThatThrownBy(() -> holidayService.refreshHolidays(command))
+          .isInstanceOf(CountryNotFoundException.class)
+          .hasMessageContaining("XX");
+      then(findCountryPort).should().findByCode(countryCode.code());
+      then(deleteHolidaysPort).should(never()).deleteByYearAndCountryCode(anyInt(), any(CountryCode.class));
+      then(holidaySyncService).should(never()).syncHolidaysForCountryAndYear(any(SyncHolidayCommand.class));
     }
   }
 }
