@@ -2,6 +2,7 @@ package com.planitsquare.miniservice.application.service;
 
 import com.planitsquare.miniservice.adapter.out.persistence.vo.SyncExecutionType;
 import com.planitsquare.miniservice.application.annotation.SyncJob;
+import com.planitsquare.miniservice.application.exception.CountryNotFoundException;
 import com.planitsquare.miniservice.application.port.in.DeleteHolidaysCommand;
 import com.planitsquare.miniservice.application.port.in.DeleteHolidaysUseCase;
 import com.planitsquare.miniservice.application.port.in.UploadHolidayCommand;
@@ -13,6 +14,7 @@ import com.planitsquare.miniservice.application.port.out.SaveAllCountriesPort;
 import com.planitsquare.miniservice.application.util.JobIdContext;
 import com.planitsquare.miniservice.common.UseCase;
 import com.planitsquare.miniservice.domain.vo.Country;
+import com.planitsquare.miniservice.domain.vo.CountryCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -50,6 +52,7 @@ public class HolidayService implements UploadHolidaysUseCase, DeleteHolidaysUseC
   @Override
   @SyncJob(executionType = "#command.executionType()")
   public void uploadHolidays(UploadHolidayCommand command) {
+    YearPolicy.requireAtLeastMinYear(command.year());
     final SyncExecutionType syncExecutionType = command.executionType();
 
     log.info("공휴일 업로드 시작 - 연도: {}, 실행 타입: {}",
@@ -119,11 +122,17 @@ public class HolidayService implements UploadHolidaysUseCase, DeleteHolidaysUseC
    */
   @Override
   public int deleteHolidays(DeleteHolidaysCommand command) {
+    final int year = command.year();
+    final CountryCode countryCode = command.countryCode();
+    YearPolicy.requireAtLeastMinYear(year);
     log.info("공휴일 삭제 시작 - 연도: {}, 국가 코드: {}",
-        command.year(), command.countryCode().code());
+        year, countryCode.code());
 
+    if (!findCountryPort.existsByCode(countryCode.code())) {
+      throw new CountryNotFoundException("해당하는 국가 코드가 존재하지 않습니다.");
+    }
     int deletedCount = deleteHolidaysPort.deleteByYearAndCountryCode(
-        command.year(),
+        year,
         command.countryCode()
     );
 

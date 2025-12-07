@@ -200,6 +200,7 @@ class HolidayServiceTest {
       CountryCode countryCode = new CountryCode("KR");
       DeleteHolidaysCommand command = new DeleteHolidaysCommand(year, countryCode);
 
+      given(findCountryPort.existsByCode(countryCode.code())).willReturn(true);
       given(deleteHolidaysPort.deleteByYearAndCountryCode(year, countryCode))
           .willReturn(10);
 
@@ -208,6 +209,7 @@ class HolidayServiceTest {
 
       // Then
       assertThat(deletedCount).isEqualTo(10);
+      then(findCountryPort).should().existsByCode(countryCode.code());
       then(deleteHolidaysPort).should().deleteByYearAndCountryCode(year, countryCode);
     }
 
@@ -219,6 +221,7 @@ class HolidayServiceTest {
       CountryCode countryCode = new CountryCode("JP");
       DeleteHolidaysCommand command = new DeleteHolidaysCommand(year, countryCode);
 
+      given(findCountryPort.existsByCode(countryCode.code())).willReturn(true);
       given(deleteHolidaysPort.deleteByYearAndCountryCode(year, countryCode))
           .willReturn(0);
 
@@ -227,6 +230,7 @@ class HolidayServiceTest {
 
       // Then
       assertThat(deletedCount).isEqualTo(0);
+      then(findCountryPort).should().existsByCode(countryCode.code());
       then(deleteHolidaysPort).should().deleteByYearAndCountryCode(year, countryCode);
     }
   }

@@ -1,5 +1,6 @@
 package com.planitsquare.miniservice.adapter.in.web;
 
+import com.planitsquare.miniservice.application.exception.CountryNotFoundException;
 import com.planitsquare.miniservice.application.exception.JobAlreadyRunningException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -132,6 +133,33 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity
         .status(HttpStatus.CONFLICT)
+        .body(errorResponse);
+  }
+
+  /**
+   * CountryNotFoundException을 처리합니다.
+   *
+   * @param ex CountryNotFoundException
+   * @param request HTTP 요청
+   * @return 에러 응답
+   * @since 1.0
+   */
+  @ExceptionHandler(CountryNotFoundException.class)
+  public ResponseEntity<ErrorResponse> handleCountryNotFoundException(
+      CountryNotFoundException ex,
+      HttpServletRequest request
+  ) {
+    log.warn("국가를 찾을 수 없음 - 경로: {}, 메시지: {}", request.getRequestURI(), ex.getMessage());
+
+    ErrorResponse errorResponse = ErrorResponse.of(
+        HttpStatus.NOT_FOUND.value(),
+        HttpStatus.NOT_FOUND.getReasonPhrase(),
+        ex.getMessage(),
+        request.getRequestURI()
+    );
+
+    return ResponseEntity
+        .status(HttpStatus.NOT_FOUND)
         .body(errorResponse);
   }
 
