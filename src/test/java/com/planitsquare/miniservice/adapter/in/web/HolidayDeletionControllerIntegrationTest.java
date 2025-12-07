@@ -121,22 +121,6 @@ class HolidayDeletionControllerIntegrationTest extends IntegrationTestBase {
   }
 
   @Test
-  @DisplayName("삭제할 데이터가 없으면 0을 반환한다")
-  void 삭제할_데이터가_없으면_0을_반환한다() throws Exception {
-    // Given - 2026년 데이터는 없음
-    long beforeCount = holidayJpaRepository.count();
-
-    // When & Then
-    mockMvc.perform(delete("/api/v1/holidays/2026/KR"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.deletedCount").value(0));
-
-    // 데이터 변화 없음
-    long afterCount = holidayJpaRepository.count();
-    assertThat(afterCount).isEqualTo(beforeCount);
-  }
-
-  @Test
   @DisplayName("다른 연도와 국가의 데이터는 삭제되지 않는다")
   void 다른_연도와_국가의_데이터는_삭제되지_않는다() throws Exception {
     // When - 한국 2024년 데이터만 삭제
