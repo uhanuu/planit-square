@@ -1,5 +1,7 @@
 package com.planitsquare.miniservice.adapter.in.web;
 
+import com.planitsquare.miniservice.adapter.in.web.dto.request.UploadHolidayRequest;
+import com.planitsquare.miniservice.adapter.in.web.dto.response.DeleteHolidayResponse;
 import com.planitsquare.miniservice.adapter.out.persistence.vo.SyncExecutionType;
 import com.planitsquare.miniservice.application.port.in.DeleteHolidaysCommand;
 import com.planitsquare.miniservice.application.port.in.DeleteHolidaysUseCase;
@@ -21,7 +23,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**

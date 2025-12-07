@@ -1,5 +1,6 @@
 package com.planitsquare.miniservice.adapter.in.web;
 
+import com.planitsquare.miniservice.adapter.in.web.dto.response.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

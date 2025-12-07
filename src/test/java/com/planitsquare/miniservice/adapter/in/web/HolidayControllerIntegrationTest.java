@@ -2,6 +2,7 @@ package com.planitsquare.miniservice.adapter.in.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.planitsquare.miniservice.IntegrationTestBase;
+import com.planitsquare.miniservice.adapter.in.web.dto.request.UploadHolidayRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

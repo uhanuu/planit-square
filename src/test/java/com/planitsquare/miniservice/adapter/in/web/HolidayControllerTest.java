@@ -1,5 +1,6 @@
 package com.planitsquare.miniservice.adapter.in.web;
 
+import com.planitsquare.miniservice.adapter.in.web.dto.request.UploadHolidayRequest;
 import com.planitsquare.miniservice.application.port.in.UploadHolidayCommand;
 import com.planitsquare.miniservice.application.port.in.UploadHolidaysUseCase;
 import org.junit.jupiter.api.DisplayName;
