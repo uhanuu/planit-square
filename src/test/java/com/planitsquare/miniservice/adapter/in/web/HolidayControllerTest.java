@@ -1,9 +1,7 @@
 package com.planitsquare.miniservice.adapter.in.web;
 
-import com.planitsquare.miniservice.adapter.out.persistence.vo.SyncExecutionType;
 import com.planitsquare.miniservice.application.port.in.UploadHolidayCommand;
 import com.planitsquare.miniservice.application.port.in.UploadHolidaysUseCase;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

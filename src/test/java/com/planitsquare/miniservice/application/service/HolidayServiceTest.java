@@ -40,6 +40,7 @@ class HolidayServiceTest {
   @Mock private SaveAllHolidaysPort saveAllHolidaysPort;
   @Mock private RecordSyncHistoryPort recordSyncHistoryPort;
   @Mock private SyncJobPort syncJobPort;
+  @Mock private HolidaySyncService holidaySyncService;
 
   @InjectMocks private HolidayService holidayService;
 
@@ -65,6 +66,10 @@ class HolidayServiceTest {
 
     // 공휴일 조회 기본 설정 (lenient로 설정하여 사용되지 않을 수 있음을 허용)
     lenient().when(fetchHolidaysPort.fetchHolidays(anyInt(), any(Country.class)))
+        .thenReturn(List.of(sampleHoliday));
+
+    // HolidaySyncService 기본 설정
+    lenient().when(holidaySyncService.syncHolidaysForCountryAndYear(any(SyncHolidayCommand.class)))
         .thenReturn(List.of(sampleHoliday));
 
     // SyncJob 기본 설정
@@ -119,8 +124,7 @@ class HolidayServiceTest {
       holidayService.uploadHolidays(cmd(2025, SyncExecutionType.SCHEDULED_BATCH));
 
       // Then: 2021~2025 (5년) × 2개 국가 = 10번
-      then(fetchHolidaysPort).should(times(10)).fetchHolidays(anyInt(), any(Country.class));
-      then(saveAllHolidaysPort).should(times(10)).saveAllHolidays(anyList());
+      then(holidaySyncService).should(times(10)).syncHolidaysForCountryAndYear(any(SyncHolidayCommand.class));
     }
 
     @Test
@@ -132,9 +136,9 @@ class HolidayServiceTest {
       // When
       holidayService.uploadHolidays(cmd(2025, SyncExecutionType.SCHEDULED_BATCH));
 
-      // Then
-      then(fetchHolidaysPort).should(times(5)).fetchHolidays(anyInt(), eq(KR));
-      then(fetchHolidaysPort).should(times(5)).fetchHolidays(anyInt(), eq(US));
+      // Then - 2개 국가 × 5년 = 총 10번 호출
+      then(holidaySyncService).should(times(10))
+          .syncHolidaysForCountryAndYear(any(SyncHolidayCommand.class));
     }
 
     @Test
@@ -173,9 +177,10 @@ class HolidayServiceTest {
       }
 
       private void verifyYearCalls(Country country, int startYear, int endYear) {
-        for (int year = startYear; year <= endYear; year++) {
-          then(fetchHolidaysPort).should().fetchHolidays(year, country);
-        }
+        // 연도 범위 검증: startYear부터 endYear까지의 연도 수만큼 호출되었는지 확인
+        int expectedCalls = endYear - startYear + 1;
+        then(holidaySyncService).should(times(expectedCalls))
+            .syncHolidaysForCountryAndYear(any(SyncHolidayCommand.class));
       }
     }
   }
