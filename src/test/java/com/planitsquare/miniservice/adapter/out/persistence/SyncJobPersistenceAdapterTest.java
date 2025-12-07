@@ -3,6 +3,7 @@ package com.planitsquare.miniservice.adapter.out.persistence;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.planitsquare.miniservice.IntegrationTestBase;
 import com.planitsquare.miniservice.adapter.out.persistence.entity.SyncJobJpaEntity;
 import com.planitsquare.miniservice.adapter.out.persistence.repository.SyncHistoryJpaRepository;
 import com.planitsquare.miniservice.adapter.out.persistence.repository.SyncJobJpaRepository;
@@ -13,14 +14,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
-@SpringBootTest
-@ActiveProfiles("test")
 @DisplayName("SyncJobPersistenceAdapter 테스트")
-class SyncJobPersistenceAdapterTest {
+class SyncJobPersistenceAdapterTest extends IntegrationTestBase {
 
   @Autowired
   private SyncJobPersistenceAdapter syncJobPersistenceAdapter;
