@@ -11,8 +11,8 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -35,7 +35,7 @@ public class HolidayQueryRepositoryImpl implements HolidayQueryRepository {
 
   @Override
   public Page<HolidayJpaEntity> search(SearchHolidaysQuery query) {
-    Pageable pageable = createPageable(query);
+    Pageable pageable = query.getPageable();
 
     JPAQuery<HolidayJpaEntity> jpaQuery = queryFactory
         .selectFrom(holiday)
@@ -51,7 +51,7 @@ public class HolidayQueryRepositoryImpl implements HolidayQueryRepository {
         .limit(pageable.getPageSize());
 
     // 정렬 적용
-    OrderSpecifier<?>[] orderSpecifiers = createOrderSpecifiers(query.getSort());
+    OrderSpecifier<?>[] orderSpecifiers = createOrderSpecifiers(pageable.getSort());
     if (orderSpecifiers.length > 0) {
       jpaQuery.orderBy(orderSpecifiers);
     } else {
@@ -76,29 +76,22 @@ public class HolidayQueryRepositoryImpl implements HolidayQueryRepository {
     return new PageImpl<>(content, pageable, total != null ? total : 0L);
   }
 
-  /**
-   * 연도 조건.
-   */
   private BooleanExpression yearEq(Integer year) {
     return year != null ? holiday.date.year().eq(year) : null;
   }
 
-  /**
-   * 국가 코드 조건.
-   */
   private BooleanExpression countryCodeEq(String countryCode) {
     return countryCode != null ? holiday.country.code.eq(countryCode.toUpperCase()) : null;
   }
 
-  /**
-   * 날짜 범위 조건.
-   */
   private BooleanExpression dateBetween(LocalDate from, LocalDate to) {
     if (from != null && to != null) {
       return holiday.date.between(from, to);
-    } else if (from != null) {
+    }
+    if (from != null) {
       return holiday.date.goe(from);
-    } else if (to != null) {
+    }
+    if (to != null) {
       return holiday.date.loe(to);
     }
     return null;
@@ -123,34 +116,25 @@ public class HolidayQueryRepositoryImpl implements HolidayQueryRepository {
    * 이름 검색 조건 (부분 일치).
    */
   private BooleanExpression nameLike(String name) {
-    return name != null && !name.isBlank()
-        ? holiday.name.containsIgnoreCase(name)
-        .or(holiday.localName.containsIgnoreCase(name))
-        : null;
-  }
-
-  /**
-   * Pageable 객체 생성.
-   */
-  private Pageable createPageable(SearchHolidaysQuery query) {
-    return PageRequest.of(query.getPage(), query.getSize());
+    if (name != null && !name.isBlank()) {
+      return holiday.name.containsIgnoreCase(name).or(holiday.localName.containsIgnoreCase(name));
+    }
+    return null;
   }
 
   /**
    * 정렬 조건 생성.
    */
-  private OrderSpecifier<?>[] createOrderSpecifiers(String sort) {
-    if (sort == null || sort.isBlank()) {
+  private OrderSpecifier<?>[] createOrderSpecifiers(Sort sort) {
+    if (sort == null || sort.isUnsorted()) {
       return new OrderSpecifier[0];
     }
 
     List<OrderSpecifier<?>> orderSpecifiers = new ArrayList<>();
-    String[] sortParams = sort.split(",");
 
-    if (sortParams.length >= 2) {
-      String field = sortParams[0].trim();
-      String direction = sortParams[1].trim();
-      boolean isAsc = "asc".equalsIgnoreCase(direction);
+    for (Sort.Order order : sort) {
+      String field = order.getProperty();
+      boolean isAsc = order.isAscending();
 
       switch (field.toLowerCase()) {
         case "date":

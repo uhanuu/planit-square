@@ -9,6 +9,8 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -42,9 +44,7 @@ public class HolidaySearchController {
    * @param to          종료일 (선택)
    * @param type        공휴일 타입 (선택)
    * @param name        공휴일 이름 검색어 (선택)
-   * @param page        페이지 번호 (기본값: 0)
-   * @param size        페이지 크기 (기본값: 20)
-   * @param sort        정렬 조건 (기본값: date,asc)
+   * @param pageable    페이징 및 정렬 정보 (기본값: page=0, size=20, sort=date,asc)
    * @return 페이징 처리된 공휴일 목록
    */
   @Operation(summary = "공휴일 검색", description = "다양한 조건으로 공휴일을 검색합니다.")
@@ -68,30 +68,18 @@ public class HolidaySearchController {
       @Parameter(description = "공휴일 이름 검색어", example = "설날")
       @RequestParam(required = false) String name,
 
-      @Parameter(description = "페이지 번호 (0-based)", example = "0")
-      @RequestParam(defaultValue = "0") int page,
-
-      @Parameter(description = "페이지 크기", example = "20")
-      @RequestParam(defaultValue = "20") int size,
-
-      @Parameter(description = "정렬 (field,direction)", example = "date,asc")
-      @RequestParam(defaultValue = "date,asc") String sort
+      @PageableDefault(size = 20, sort = "date") Pageable pageable
   ) {
-    SearchHolidaysQuery query = SearchHolidaysQuery.builder()
+    final SearchHolidaysQuery query = SearchHolidaysQuery.builder()
         .year(year)
         .countryCode(countryCode)
         .from(from)
         .to(to)
         .type(type)
         .name(name)
-        .page(page)
-        .size(size)
-        .sort(sort)
+        .pageable(pageable)
         .build();
 
-    Page<Holiday> holidays = searchHolidaysUseCase.search(query);
-    Page<HolidayResponseDto> response = holidays.map(HolidayResponseDto::from);
-
-    return ResponseEntity.ok(response);
+    return ResponseEntity.ok(searchHolidaysUseCase.search(query).map(HolidayResponseDto::from));
   }
 }

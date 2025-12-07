@@ -44,17 +44,17 @@ class HolidaySearchServiceTest {
   @DisplayName("검색 조건에 따라 공휴일을 조회한다")
   void 검색_조건에_따라_공휴일을_조회한다() {
     // Given
+    PageRequest page = PageRequest.of(0, 20);
     SearchHolidaysQuery query = SearchHolidaysQuery.builder()
         .year(2024)
         .countryCode("KR")
-        .page(0)
-        .size(20)
+        .pageable(page)
         .build();
 
     Holiday holiday = createHoliday(1L, "설날");
     Page<Holiday> expectedPage = new PageImpl<>(
         List.of(holiday),
-        PageRequest.of(0, 20),
+        page,
         1
     );
 
