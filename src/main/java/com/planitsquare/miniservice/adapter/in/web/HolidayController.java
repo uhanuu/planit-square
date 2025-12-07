@@ -17,10 +17,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -79,12 +79,12 @@ public class HolidayController {
       @ApiResponse(responseCode = "400", description = "잘못된 요청 (유효하지 않은 년도 또는 국가 코드)"),
       @ApiResponse(responseCode = "500", description = "서버 내부 오류")
   })
-  @DeleteMapping("/holidays")
+  @DeleteMapping("/holidays/{year}/{countryCode}")
   public ResponseEntity<DeleteHolidayResponse> deleteHolidays(
       @Parameter(description = "삭제할 연도", example = "2024", required = true)
-      @RequestParam int year,
+      @PathVariable Integer year,
       @Parameter(description = "삭제할 국가 코드", example = "KR", required = true)
-      @RequestParam String countryCode
+      @PathVariable String countryCode
   ) {
     DeleteHolidaysCommand command = new DeleteHolidaysCommand(year, new CountryCode(countryCode));
     int deletedCount = deleteHolidaysUseCase.deleteHolidays(command);

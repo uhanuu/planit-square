@@ -12,10 +12,13 @@ import com.planitsquare.miniservice.domain.vo.CountryCode;
  * @since 1.0
  */
 public record DeleteHolidaysCommand(
-    int year,
+    Integer year,
     CountryCode countryCode
 ) {
   public DeleteHolidaysCommand {
+    if (year == null) {
+      throw new IllegalArgumentException("연도가 존재하지 않습니다.");
+    }
     if (countryCode == null) {
       throw new IllegalArgumentException("국가 코드가 존재하지 않습니다.");
     }
