@@ -17,7 +17,7 @@ class YearRangeHelperTest {
     int endYear = 2025;
 
     // When
-    List<Integer> years = YearRangeHelper.generateYearsFromEnd(endYear);
+    List<Integer> years = YearRangeHelper.generateYearsFromEnd(endYear, YearPolicy.DEFAULT_RANGE_LENGTH.getValue());
 
     // Then
     assertThat(years).containsExactly(2021, 2022, 2023, 2024, 2025);
@@ -30,7 +30,7 @@ class YearRangeHelperTest {
     int endYear = 1999;
 
     // When & Then
-    assertThatThrownBy(() -> YearRangeHelper.generateYearsFromEnd(endYear))
+    assertThatThrownBy(() -> YearRangeHelper.generateYearsFromEnd(endYear, YearPolicy.DEFAULT_RANGE_LENGTH.getValue()))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("지원되지 않는 연도입니다");
   }
@@ -42,7 +42,7 @@ class YearRangeHelperTest {
     int endYear = 2003; // 시작 연도 계산: 2003 - 5 + 1 = 1999 (MIN_YEAR 2000 미만)
 
     // When & Then
-    assertThatThrownBy(() -> YearRangeHelper.generateYearsFromEnd(endYear))
+    assertThatThrownBy(() -> YearRangeHelper.generateYearsFromEnd(endYear, YearPolicy.DEFAULT_RANGE_LENGTH.getValue()))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("지원되지 않는 연도입니다");
   }
@@ -54,7 +54,7 @@ class YearRangeHelperTest {
     int endYear = 2004; // 시작 연도 계산: 2004 - 5 + 1 = 2000 (MIN_YEAR와 동일)
 
     // When
-    List<Integer> years = YearRangeHelper.generateYearsFromEnd(endYear);
+    List<Integer> years = YearRangeHelper.generateYearsFromEnd(endYear, YearPolicy.DEFAULT_RANGE_LENGTH.getValue());
 
     // Then
     assertThat(years).containsExactly(2000, 2001, 2002, 2003, 2004);

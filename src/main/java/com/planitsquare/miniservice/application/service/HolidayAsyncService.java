@@ -2,8 +2,10 @@ package com.planitsquare.miniservice.application.service;
 
 import com.planitsquare.miniservice.adapter.out.persistence.vo.SyncExecutionType;
 import com.planitsquare.miniservice.application.annotation.SyncJob;
+import com.planitsquare.miniservice.application.port.in.SyncHolidayDataUseCase;
 import com.planitsquare.miniservice.application.port.in.UploadHolidayCommand;
 import com.planitsquare.miniservice.application.port.in.UploadHolidaysUseCase;
+import com.planitsquare.miniservice.application.port.out.DeleteHolidaysPort;
 import com.planitsquare.miniservice.application.port.out.FetchCountriesPort;
 import com.planitsquare.miniservice.application.port.out.FindCountryPort;
 import com.planitsquare.miniservice.application.port.out.SaveAllCountriesPort;
@@ -30,13 +32,14 @@ import java.util.concurrent.Executor;
 @UseCase
 @RequiredArgsConstructor
 @Slf4j
-public class HolidayAsyncService implements UploadHolidaysUseCase {
+public class HolidayAsyncService implements UploadHolidaysUseCase, SyncHolidayDataUseCase {
 
   private final FindCountryPort findCountryPort;
   private final FetchCountriesPort fetchCountriesPort;
   private final SaveAllCountriesPort saveAllCountriesPort;
   private final HolidaySyncInnerService holidaySyncInnerService;
   private final Executor holidayTaskExecutor;
+  private final DeleteHolidaysPort deleteHolidaysPort;
 
   /**
    * 지정된 연도 범위의 공휴일 데이터를 비동기로 업로드합니다.
@@ -59,7 +62,7 @@ public class HolidayAsyncService implements UploadHolidaysUseCase {
     log.info("공휴일 업로드 시작 (비동기) - 연도: {}, 실행 타입: {}",
         command.year(), syncExecutionType.getDisplayName());
 
-    List<Integer> years = YearRangeHelper.generateYearsFromEnd(command.year());
+    List<Integer> years = YearRangeHelper.generateYearsFromEnd(command.year(), command.yearRangeLength());
     List<Country> countries = ensureCountriesLoaded(syncExecutionType);
 
     log.info("공휴일 비동기 업로드 진행 - 국가 수: {}, 처리 연도들: {}", countries.size(), years);
@@ -184,15 +187,49 @@ public class HolidayAsyncService implements UploadHolidaysUseCase {
    * @since 1.0
    */
   private List<Country> ensureCountriesLoaded(SyncExecutionType executionType) {
-    if (executionType.isInitialSystemLoad()) {
-      log.info("최초 시스템 적재 - 외부 API에서 국가 목록 조회");
-      List<Country> countries = fetchCountriesPort.fetchCountries();
-      saveAllCountriesPort.saveAllCountries(countries);
-      log.info("국가 목록 저장 완료 - 건수: {}", countries.size());
-      return countries;
+    if (!executionType.isInitialSystemLoad()) {
+      log.debug("데이터베이스에서 국가 목록 조회");
+      return findCountryPort.findAll();
     }
 
-    log.debug("데이터베이스에서 국가 목록 조회");
-    return findCountryPort.findAll();
+    log.info("최초 시스템 적재 - 외부 API에서 국가 목록 조회");
+    List<Country> countries = fetchCountriesPort.fetchCountries();
+    saveAllCountriesPort.saveAllCountries(countries);
+    log.info("국가 목록 저장 완료 - 건수: {}", countries.size());
+    return countries;
+  }
+
+  /**
+   * 지정된 연도 범위의 공휴일 데이터를 비동기로 업로드합니다.
+   *
+   * 외부 API로 호출된 각 국가와 연도별로 공휴일을 전달 받아 저장합니다.
+   * 비동기로 실행되며, 각 실행은 독립적인 트랜잭션 내에서 수행됩니다.
+   *
+   * <p>Job 시작/완료는 {@link SyncJob} 어노테이션을 통해 AOP가 자동으로 처리합니다.
+   *
+   * @param command 업로드 커맨드 (연도 및 실행 타입과 외부 API 결과가 전달됩니다.)
+   * @return 동기화 결과 목록
+   * @since 1.0
+   */
+  @Override
+  @SyncJob(executionType = "#command.executionType()")
+  public List<SyncResult> syncAnnualHolidays(UploadHolidayCommand command) {
+    YearPolicy.requireAtLeastMinYear(command.year());
+    final SyncExecutionType syncExecutionType = command.executionType();
+    List<Integer> years = YearRangeHelper.generateYearsFromEnd(command.year(), command.yearRangeLength());
+
+    log.info("연간 공휴일 동기화 시작 - 연도 목록: {}, 실행 타입: {}",
+        years, syncExecutionType.getDisplayName());
+
+    int deletedCount = deleteHolidaysPort.deleteByYear(years);
+    log.info("기존 공휴일 데이터 삭제 완료 - 삭제 건수: {}", deletedCount);
+
+    List<Country> countries = ensureCountriesLoaded(syncExecutionType);
+
+    log.info("공휴일 비동기 업로드 진행 - 국가 수: {}, 처리 연도들: {}", countries.size(), years);
+    List<SyncResult> results = fetchAndSaveHolidaysForAllCountriesAndYearsAsync(countries, years);
+
+    log.info("연간 공휴일 동기화 완료 - 총 {}개 국가, {}개 연도 처리", countries.size(), years.size());
+    return results;
   }
 }

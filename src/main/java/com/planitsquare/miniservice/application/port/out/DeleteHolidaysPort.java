@@ -2,6 +2,8 @@ package com.planitsquare.miniservice.application.port.out;
 
 import com.planitsquare.miniservice.domain.vo.CountryCode;
 
+import java.util.List;
+
 /**
  * 공휴일 삭제 Port.
  *
@@ -19,4 +21,12 @@ public interface DeleteHolidaysPort {
    * @return 삭제된 공휴일 건수
    */
   int deleteByYearAndCountryCode(int year, CountryCode countryCode);
+
+  /**
+   * 특정 연도의 해당하는 공휴일을 삭제합니다.
+   *
+   * @param years 연도 목록
+   * @return 삭제된 공휴일 건수
+   */
+  int deleteByYear(List<Integer> years);
 }

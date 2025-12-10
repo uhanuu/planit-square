@@ -39,6 +39,10 @@ import java.util.List;
 @Slf4j
 public class SyncJobAspect {
 
+  private static final int SINGLE_TASK = 1;
+  private static final int NO_SUCCESS = 0;
+  private static final int SINGLE_FAILURE = 1;
+
   private final SyncJobPort syncJobPort;
   private final ExpressionParser parser = new SpelExpressionParser();
 
@@ -85,6 +89,11 @@ public class SyncJobAspect {
       }
 
       return result;
+    } catch (Exception e) {
+      // 예외 발생 시 Job을 실패 상태로 처리
+      syncJobPort.completeJobWithStats(jobId, SINGLE_TASK, NO_SUCCESS, SINGLE_FAILURE);
+      log.error("Job 실패 - Job ID: {}, 예외: {}", jobId, e.getMessage(), e);
+      throw e;  // 예외를 다시 던져서 상위에서 처리하도록 함
     } finally {
       // JobIdContext 정리
       JobIdContext.clear();

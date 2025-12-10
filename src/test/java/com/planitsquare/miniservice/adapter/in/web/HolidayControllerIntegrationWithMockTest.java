@@ -3,7 +3,9 @@ package com.planitsquare.miniservice.adapter.in.web;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.planitsquare.miniservice.adapter.in.web.dto.request.UploadHolidayRequest;
 import com.planitsquare.miniservice.application.port.in.DeleteHolidaysUseCase;
+import com.planitsquare.miniservice.application.port.in.FetchHolidaysUseCase;
 import com.planitsquare.miniservice.application.port.in.RefreshHolidaysUseCase;
+import com.planitsquare.miniservice.application.port.in.SyncHolidayDataUseCase;
 import com.planitsquare.miniservice.application.port.in.UploadHolidaysUseCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -38,9 +40,13 @@ class HolidayControllerIntegrationWithMockTest extends MockIntegrationTestBase {
   @MockitoBean
   private UploadHolidaysUseCase uploadHolidaysUseCase;
   @MockitoBean
+  private SyncHolidayDataUseCase syncHolidayDataUseCase;
+  @MockitoBean
   private DeleteHolidaysUseCase deleteHolidaysUseCase;
   @MockitoBean
   private RefreshHolidaysUseCase refreshHolidaysUseCase;
+  @MockitoBean
+  private FetchHolidaysUseCase fetchHolidaysUseCase;
   private MockMvc mockMvc;
   private ObjectMapper objectMapper;
 

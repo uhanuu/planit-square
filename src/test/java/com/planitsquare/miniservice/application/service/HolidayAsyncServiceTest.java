@@ -78,7 +78,7 @@ class HolidayAsyncServiceTest {
   }
 
   private UploadHolidayCommand cmd(int year, SyncExecutionType type) {
-    return new UploadHolidayCommand(year, type);
+    return new UploadHolidayCommand(year, type, YearPolicy.DEFAULT_RANGE_LENGTH.getValue());
   }
 
   @Nested

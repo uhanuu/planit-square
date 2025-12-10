@@ -32,6 +32,12 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.0'
 
+    // Resilience4j for retry and circuit breaker (includes AOP)
+    implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
+    implementation 'io.github.resilience4j:resilience4j-retry:2.2.0'
+    implementation 'org.springframework:spring-aop'
+    implementation 'org.aspectj:aspectjweaver'
+
     // QueryDSL
     implementation 'com.querydsl:querydsl-core:5.1.0'
     implementation 'com.querydsl:querydsl-jpa:5.1.0:jakarta'
