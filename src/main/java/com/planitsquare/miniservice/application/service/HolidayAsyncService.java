@@ -184,15 +184,15 @@ public class HolidayAsyncService implements UploadHolidaysUseCase {
    * @since 1.0
    */
   private List<Country> ensureCountriesLoaded(SyncExecutionType executionType) {
-    if (executionType.isInitialSystemLoad()) {
-      log.info("최초 시스템 적재 - 외부 API에서 국가 목록 조회");
-      List<Country> countries = fetchCountriesPort.fetchCountries();
-      saveAllCountriesPort.saveAllCountries(countries);
-      log.info("국가 목록 저장 완료 - 건수: {}", countries.size());
-      return countries;
+    if (!executionType.isInitialSystemLoad()) {
+      log.debug("데이터베이스에서 국가 목록 조회");
+      return findCountryPort.findAll();
     }
 
-    log.debug("데이터베이스에서 국가 목록 조회");
-    return findCountryPort.findAll();
+    log.info("최초 시스템 적재 - 외부 API에서 국가 목록 조회");
+    List<Country> countries = fetchCountriesPort.fetchCountries();
+    saveAllCountriesPort.saveAllCountries(countries);
+    log.info("국가 목록 저장 완료 - 건수: {}", countries.size());
+    return countries;
   }
 }
