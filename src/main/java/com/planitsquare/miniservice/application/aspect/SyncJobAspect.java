@@ -3,6 +3,8 @@ package com.planitsquare.miniservice.application.aspect;
 import com.planitsquare.miniservice.adapter.out.persistence.vo.SyncExecutionType;
 import com.planitsquare.miniservice.application.annotation.SyncJob;
 import com.planitsquare.miniservice.application.port.out.SyncJobPort;
+import com.planitsquare.miniservice.application.service.SyncResult;
+import com.planitsquare.miniservice.application.service.SyncStats;
 import com.planitsquare.miniservice.application.util.JobIdContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +17,8 @@ import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /**
  * {@link SyncJob} 어노테이션을 처리하는 AOP Aspect.
@@ -60,8 +64,25 @@ public class SyncJobAspect {
     try {
       Object result = joinPoint.proceed();
 
-      syncJobPort.completeJob(jobId);
-      log.info("Job 완료 - Job ID: {}", jobId);
+      // 반환값이 List<SyncResult>인 경우 통계와 함께 Job 완료
+      if (result instanceof List<?> list && !list.isEmpty() && list.get(0) instanceof SyncResult) {
+        @SuppressWarnings("unchecked")
+        List<SyncResult> syncResults = (List<SyncResult>) result;
+        SyncStats stats = SyncStats.from(syncResults);
+
+        syncJobPort.completeJobWithStats(
+            jobId,
+            stats.totalTasks(),
+            stats.successCount(),
+            stats.failureCount()
+        );
+
+        log.info("Job 완료 (통계 포함) - Job ID: {}, {}", jobId, stats.toLogString());
+      } else {
+        // 기존 방식으로 완료
+        syncJobPort.completeJob(jobId);
+        log.info("Job 완료 - Job ID: {}", jobId);
+      }
 
       return result;
     } finally {

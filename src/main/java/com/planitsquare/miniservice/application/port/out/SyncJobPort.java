@@ -36,9 +36,38 @@ public interface SyncJobPort {
   void completeJob(Long jobId);
 
   /**
+   * Job을 통계 정보와 함께 완료 처리합니다.
+   *
+   * <p>성공/실패 카운트를 기반으로 최종 상태를 자동으로 결정합니다:
+   * <ul>
+   *   <li>모든 작업 성공: COMPLETED</li>
+   *   <li>일부 성공, 일부 실패: PARTIAL_SUCCESS</li>
+   *   <li>모든 작업 실패: FAILED</li>
+   * </ul>
+   *
+   * @param jobId Job ID
+   * @param totalTasks 전체 작업 수
+   * @param successCount 성공한 작업 수
+   * @param failureCount 실패한 작업 수
+   * @since 1.0
+   */
+  void completeJobWithStats(Long jobId, int totalTasks, int successCount, int failureCount);
+
+  /**
    * 실행 했던 Job이 있는지 판단합니다.
    *
    * @return 실행했던 Job이 존재하는 경우 false를 반환합니다.
    */
   boolean isInitialSystemLoad();
+
+  /**
+   * 현재 실행 중인 Job이 있는지 확인합니다.
+   *
+   * <p>RUNNING 상태의 Job이 존재하는지 확인합니다.
+   * 삭제 작업 등 데이터 무결성이 중요한 작업 전에 호출하여 동시성을 제어합니다.
+   *
+   * @return 실행 중인 Job이 존재하면 true, 없으면 false
+   * @since 1.0
+   */
+  boolean hasRunningJob();
 }

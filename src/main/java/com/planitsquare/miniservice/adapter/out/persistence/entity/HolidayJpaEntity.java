@@ -33,7 +33,12 @@ import java.util.Objects;
 public class HolidayJpaEntity {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "holiday_seq")
+  @SequenceGenerator(
+      name = "holiday_seq",
+      sequenceName = "holiday_sequence",
+      allocationSize = 50
+  )
   @Column(name = "holiday_id")
   private Long id;
 

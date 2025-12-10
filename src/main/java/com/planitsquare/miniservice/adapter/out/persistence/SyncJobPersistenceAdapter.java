@@ -63,12 +63,56 @@ public class SyncJobPersistenceAdapter implements SyncJobPort {
     final SyncJobJpaEntity job = syncJobJpaRepository.findById(jobId)
         .orElseThrow(() -> new IllegalArgumentException("Job not found: " + jobId));
 
-    job.complete(LocalDateTime.now());
-    log.info("Job 완료 - Job ID: {} 실행시간: {}", jobId, Duration.between(job.getStartTime(), job.getEndTime()).toMillis());
+    LocalDateTime endTime = LocalDateTime.now();
+    job.completeWithStats(endTime, 0, 0, 0);
+
+    long durationMillis = Duration.between(job.getStartTime(), endTime).toMillis();
+    log.info("Job 완료 - Job ID: {}, 상태: {}, 실행시간: {}ms",
+        jobId, job.getStatus().getDisplayName(), durationMillis);
+  }
+
+  /**
+   * Job을 통계 정보와 함께 완료 처리합니다.
+   *
+   * <p>독립적인 트랜잭션(REQUIRES_NEW)으로 실행되어, 메인 작업과 별도로 커밋됩니다.
+   * 성공/실패 카운트를 기반으로 최종 상태를 자동으로 결정합니다.
+   *
+   * @param jobId Job ID
+   * @param totalTasks 전체 작업 수
+   * @param successCount 성공한 작업 수
+   * @param failureCount 실패한 작업 수
+   * @since 1.0
+   */
+  @Override
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  public void completeJobWithStats(Long jobId, int totalTasks, int successCount, int failureCount) {
+    final SyncJobJpaEntity job = syncJobJpaRepository.findById(jobId)
+        .orElseThrow(() -> new IllegalArgumentException("Job not found: " + jobId));
+
+    LocalDateTime endTime = LocalDateTime.now();
+    job.completeWithStats(endTime, totalTasks, successCount, failureCount);
+
+    long durationMillis = Duration.between(job.getStartTime(), endTime).toMillis();
+    log.info("Job 완료 - Job ID: {}, 상태: {}, 전체: {}, 성공: {}, 실패: {}, 실행시간: {}ms",
+        jobId, job.getStatus().getDisplayName(), totalTasks, successCount, failureCount, durationMillis);
   }
 
   @Override
   public boolean isInitialSystemLoad() {
     return !syncJobJpaRepository.existsByIdIsNotNull();
+  }
+
+  /**
+   * 현재 실행 중인 Job이 있는지 확인합니다.
+   *
+   * <p>RUNNING 상태의 Job이 존재하는지 확인합니다.
+   * 삭제 작업 등 데이터 무결성이 중요한 작업 전에 호출하여 동시성을 제어합니다.
+   *
+   * @return 실행 중인 Job이 존재하면 true, 없으면 false
+   * @since 1.0
+   */
+  @Override
+  public boolean hasRunningJob() {
+    return syncJobJpaRepository.existsByStatus(JobStatus.RUNNING);
   }
 }

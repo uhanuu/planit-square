@@ -17,6 +17,7 @@ import java.util.List;
 
 @PersistenceAdapter
 @RequiredArgsConstructor
+@Transactional
 public class HolidaysAdapter implements SaveAllHolidaysPort, DeleteHolidaysPort {
   private final HolidayJpaRepository holidayJpaRepository;
   private final HolidayMapper holidayMapper;
@@ -32,7 +33,6 @@ public class HolidaysAdapter implements SaveAllHolidaysPort, DeleteHolidaysPort 
   }
 
   @Override
-  @Transactional
   public int deleteByYearAndCountryCode(int year, CountryCode countryCode) {
     return holidayJpaRepository.deleteByCountryCodeAndYear(countryCode.code(), year);
   }

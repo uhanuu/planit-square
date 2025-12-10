@@ -1,7 +1,10 @@
 package com.planitsquare.miniservice.application.port.in;
 
 import com.planitsquare.miniservice.adapter.out.persistence.vo.SyncExecutionType;
+import com.planitsquare.miniservice.domain.model.Holiday;
 import com.planitsquare.miniservice.domain.vo.CountryCode;
+
+import java.util.List;
 
 /**
  * 공휴일 삭제 커맨드.
@@ -15,7 +18,8 @@ import com.planitsquare.miniservice.domain.vo.CountryCode;
 public record RefreshHolidaysCommand(
     Integer year,
     CountryCode countryCode,
-    SyncExecutionType executionType
+    SyncExecutionType executionType,
+    List<Holiday> holidays
 ) {
   public RefreshHolidaysCommand {
     if (year == null) {

@@ -7,6 +7,7 @@ import com.planitsquare.miniservice.adapter.in.web.dto.response.RefreshHolidayRe
 import com.planitsquare.miniservice.adapter.out.persistence.vo.SyncExecutionType;
 import com.planitsquare.miniservice.application.port.in.*;
 import com.planitsquare.miniservice.common.WebAdapter;
+import com.planitsquare.miniservice.domain.model.Holiday;
 import com.planitsquare.miniservice.domain.vo.CountryCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -18,6 +19,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
  * 휴일 관련 API 컨트롤러.
@@ -35,6 +39,7 @@ public class HolidayController {
   private final RefreshHolidaysUseCase refreshHolidaysUseCase;
   private final UploadHolidaysUseCase uploadHolidaysUseCase;
   private final DeleteHolidaysUseCase deleteHolidaysUseCase;
+  private final FetchHolidaysUseCase fetchHolidaysUseCase;
 
   /**
    * 외부 API로부터 휴일 데이터를 가져와 저장합니다.
@@ -76,11 +81,16 @@ public class HolidayController {
   })
   @PutMapping("/holidays")
   public ResponseEntity<RefreshHolidayResponse> refreshHolidays(@Valid @RequestBody RefreshHolidayRequest request) {
+    final CountryCode countryCode = new CountryCode(request.countryCode());
+    final List<Holiday> holidays = fetchHolidaysUseCase.fetchHolidays(request.year(), countryCode);
+
     RefreshHolidaysCommand command = new RefreshHolidaysCommand(
         request.year(),
-        new CountryCode(request.countryCode()),
-        SyncExecutionType.API_REFRESH
+        countryCode,
+        SyncExecutionType.API_REFRESH,
+        Collections.unmodifiableList(holidays)
     );
+
     RefreshHolidayDto refreshHolidayDto = refreshHolidaysUseCase.refreshHolidays(command);
 
     return ResponseEntity.ok(new RefreshHolidayResponse(

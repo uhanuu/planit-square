@@ -4,14 +4,11 @@ import com.planitsquare.miniservice.application.annotation.RecordSyncHistory;
 import com.planitsquare.miniservice.application.port.out.FetchHolidaysPort;
 import com.planitsquare.miniservice.application.port.out.SaveAllHolidaysPort;
 import com.planitsquare.miniservice.domain.model.Holiday;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * 공휴일 동기화를 담당하는 Application Service.
@@ -24,15 +21,24 @@ import java.util.concurrent.CompletableFuture;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class HolidaySyncService {
+public class HolidaySyncInnerService {
 
   private final FetchHolidaysPort fetchHolidaysPort;
   private final SaveAllHolidaysPort saveAllHolidaysPort;
+
 
   /**
    * 특정 국가와 연도에 대해 공휴일을 조회하고 저장합니다.
    *
    * <p>동기화 작업의 성공/실패 이력은 {@link RecordSyncHistory} 어노테이션을 통해 AOP가 자동으로 기록합니다.
+   *
+   * <p>트랜잭션 범위:
+   * <ul>
+   *   <li>외부 API 호출 (fetchHolidaysPort): 트랜잭션 밖에서 실행</li>
+   *   <li>저장 (saveAllHolidaysPort): Persistence Adapter에서 트랜잭션 시작</li>
+   * </ul>
+   * 이를 통해 외부 API 호출 시간이 트랜잭션 시간에 포함되지 않아 효율적입니다.
+   * 각 호출은 독립적인 트랜잭션으로 실행되어 개별 실패가 다른 작업에 영향을 주지 않습니다.
    *
    * @param command 동기화 커맨드 (Job ID, 국가, 연도 포함)
    * @return 저장된 공휴일 목록
