@@ -5,6 +5,7 @@ import com.planitsquare.miniservice.application.exception.ExternalApiException;
 import com.planitsquare.miniservice.application.port.in.CheckInitialSystemLoadUseCase;
 import com.planitsquare.miniservice.application.port.in.UploadHolidayCommand;
 import com.planitsquare.miniservice.application.port.in.UploadHolidaysUseCase;
+import com.planitsquare.miniservice.application.service.YearPolicy;
 import com.planitsquare.miniservice.common.StartUpAdapter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +34,8 @@ public class HolidayBootstrapRunner implements ApplicationRunner {
 
     final UploadHolidayCommand command = new UploadHolidayCommand(
         LocalDate.now().getYear(),
-        SyncExecutionType.INITIAL_SYSTEM_LOAD
+        SyncExecutionType.INITIAL_SYSTEM_LOAD,
+        YearPolicy.DEFAULT_RANGE_LENGTH.getValue()
     );
 
     try {

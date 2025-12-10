@@ -37,6 +37,11 @@ public class HolidaysAdapter implements SaveAllHolidaysPort, DeleteHolidaysPort 
     return holidayJpaRepository.deleteByCountryCodeAndYear(countryCode.code(), year);
   }
 
+  @Override
+  public int deleteByYear(List<Integer> years) {
+    return holidayJpaRepository.deleteByYear(years);
+  }
+
   private HolidayJpaEntity toEntity(Holiday holiday) {
     CountryJpaEntity countryJpaEntity = countryMapper.toEntity(holiday.getCountry());
     return holidayMapper.toEntity(holiday, countryJpaEntity);

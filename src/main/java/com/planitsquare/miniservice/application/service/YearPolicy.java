@@ -18,7 +18,7 @@ public enum YearPolicy {
   /**
    * 연도 범위 길이 (기본값: 5년).
    */
-  RANGE_LENGTH(5),
+  DEFAULT_RANGE_LENGTH(5),
 
   /**
    * 최소 허용 연도 (기본값: 2000년).
@@ -80,7 +80,21 @@ public enum YearPolicy {
    * @since 1.0
    */
   public static int calculateStartYear(int endYear) {
-    return endYear - RANGE_LENGTH.value + 1;
+    return endYear - DEFAULT_RANGE_LENGTH.value + 1;
+  }
+
+  /**
+   * 끝 연도를 기준으로 연도 범위 길이를 통해 시작 연도를 계산합니다.
+   *
+   * <p>계산 공식: {@code endYear - rangeLength + 1}
+   *
+   * @param endYear 끝 연도
+   * @param rangeLength 연도 범위 길이
+   * @return 계산된 시작 연도
+   * @since 1.0
+   */
+  public static int calculateStartYear(int endYear, int rangeLength) {
+    return endYear - rangeLength + 1;
   }
 
   /**
@@ -93,6 +107,6 @@ public enum YearPolicy {
    * @since 1.0
    */
   public static int calculateEndYear(int startYear) {
-    return startYear + RANGE_LENGTH.value - 1;
+    return startYear + DEFAULT_RANGE_LENGTH.value - 1;
   }
 }

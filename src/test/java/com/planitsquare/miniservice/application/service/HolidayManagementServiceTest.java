@@ -124,19 +124,17 @@ class HolidayManagementServiceTest {
     @DisplayName("특정 연도와 국가의 공휴일을 삭제하고 새로 조회하여 저장한다")
     void 특정_연도와_국가의_공휴일을_삭제하고_새로_조회하여_저장한다() {
       // Given
+      List<Holiday> holidays = List.of(sampleHoliday, sampleHoliday, sampleHoliday);
+
       int year = 2024;
       CountryCode countryCode = new CountryCode("KR");
       RefreshHolidaysCommand command = new RefreshHolidaysCommand(
           year,
           countryCode,
           SyncExecutionType.API_REFRESH,
-          Collections.emptyList()
+          holidays
       );
 
-      List<Holiday> holidays = List.of(sampleHoliday, sampleHoliday, sampleHoliday);
-
-      given(findCountryPort.findByCode(countryCode.code())).willReturn(java.util.Optional.of(KR));
-      given(fetchHolidaysPort.fetchHolidays(year, KR)).willReturn(holidays);
       given(deleteHolidaysPort.deleteByYearAndCountryCode(year, countryCode))
           .willReturn(5);
 
@@ -147,8 +145,6 @@ class HolidayManagementServiceTest {
       assertThat(result.deleteCount()).isEqualTo(5);
       assertThat(result.insertCount()).isEqualTo(3);
       then(syncJobValidator).should().validateNoRunningJob();
-      then(findCountryPort).should().findByCode(countryCode.code());
-      then(fetchHolidaysPort).should().fetchHolidays(year, KR);
       then(deleteHolidaysPort).should().deleteByYearAndCountryCode(year, countryCode);
       then(saveAllHolidaysPort).should().saveAllHolidays(holidays);
     }
@@ -159,17 +155,14 @@ class HolidayManagementServiceTest {
       // Given
       int year = 2024;
       CountryCode countryCode = new CountryCode("US");
+      List<Holiday> holidays = List.of(sampleHoliday);
       RefreshHolidaysCommand command = new RefreshHolidaysCommand(
           year,
           countryCode,
           SyncExecutionType.API_REFRESH,
-          Collections.emptyList()
+          holidays
       );
 
-      List<Holiday> holidays = List.of(sampleHoliday);
-
-      given(findCountryPort.findByCode(countryCode.code())).willReturn(java.util.Optional.of(US));
-      given(fetchHolidaysPort.fetchHolidays(year, US)).willReturn(holidays);
       given(deleteHolidaysPort.deleteByYearAndCountryCode(year, countryCode))
           .willReturn(0);
 
@@ -180,15 +173,13 @@ class HolidayManagementServiceTest {
       assertThat(result.deleteCount()).isEqualTo(0);
       assertThat(result.insertCount()).isEqualTo(1);
       then(syncJobValidator).should().validateNoRunningJob();
-      then(findCountryPort).should().findByCode(countryCode.code());
-      then(fetchHolidaysPort).should().fetchHolidays(year, US);
       then(deleteHolidaysPort).should().deleteByYearAndCountryCode(year, countryCode);
       then(saveAllHolidaysPort).should().saveAllHolidays(holidays);
     }
 
     @Test
-    @DisplayName("존재하지 않는 국가 코드로 요청하면 예외를 던진다")
-    void 존재하지_않는_국가_코드로_요청하면_예외를_던진다() {
+    @DisplayName("빈 공휴일 목록으로 리프레시를 수행한다")
+    void 빈_공휴일_목록으로_리프레시를_수행한다() {
       // Given
       int year = 2024;
       CountryCode countryCode = new CountryCode("XX");
@@ -199,17 +190,18 @@ class HolidayManagementServiceTest {
           Collections.emptyList()
       );
 
-      given(findCountryPort.findByCode(countryCode.code())).willReturn(java.util.Optional.empty());
+      given(deleteHolidaysPort.deleteByYearAndCountryCode(year, countryCode))
+          .willReturn(0);
 
-      // When & Then
-      assertThatThrownBy(() -> holidayManagementService.refreshHolidays(command))
-          .isInstanceOf(CountryNotFoundException.class)
-          .hasMessageContaining("XX");
+      // When
+      RefreshHolidayDto result = holidayManagementService.refreshHolidays(command);
+
+      // Then
+      assertThat(result.deleteCount()).isEqualTo(0);
+      assertThat(result.insertCount()).isEqualTo(0);
       then(syncJobValidator).should().validateNoRunningJob();
-      then(findCountryPort).should().findByCode(countryCode.code());
-      then(fetchHolidaysPort).should(never()).fetchHolidays(anyInt(), any(Country.class));
-      then(deleteHolidaysPort).should(never()).deleteByYearAndCountryCode(anyInt(), any(CountryCode.class));
-      then(saveAllHolidaysPort).should(never()).saveAllHolidays(any());
+      then(deleteHolidaysPort).should().deleteByYearAndCountryCode(year, countryCode);
+      then(saveAllHolidaysPort).should().saveAllHolidays(Collections.emptyList());
     }
   }
 }

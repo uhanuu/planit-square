@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
+
 public interface HolidayJpaRepository extends JpaRepository<HolidayJpaEntity, Long> {
 
   /**
@@ -18,4 +20,14 @@ public interface HolidayJpaRepository extends JpaRepository<HolidayJpaEntity, Lo
   @Modifying
   @Query("DELETE FROM HolidayJpaEntity h WHERE h.country.code = :countryCode AND YEAR(h.date) = :year")
   int deleteByCountryCodeAndYear(@Param("countryCode") String countryCode, @Param("year") int year);
+
+  /**
+   * 특정 연도의 해당하는 모든 공휴일을 삭제합니다.
+   *
+   * @param years 연도 목록
+   * @return 삭제된 레코드 수
+   */
+  @Modifying
+  @Query("DELETE FROM HolidayJpaEntity h WHERE YEAR(h.date) in :years")
+  int deleteByYear(@Param("years") List<Integer> years);
 }

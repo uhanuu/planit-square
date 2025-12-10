@@ -6,6 +6,7 @@ import com.planitsquare.miniservice.adapter.in.web.dto.response.DeleteHolidayRes
 import com.planitsquare.miniservice.adapter.in.web.dto.response.RefreshHolidayResponse;
 import com.planitsquare.miniservice.adapter.out.persistence.vo.SyncExecutionType;
 import com.planitsquare.miniservice.application.port.in.*;
+import com.planitsquare.miniservice.application.service.YearPolicy;
 import com.planitsquare.miniservice.common.WebAdapter;
 import com.planitsquare.miniservice.domain.model.Holiday;
 import com.planitsquare.miniservice.domain.vo.CountryCode;
@@ -58,7 +59,11 @@ public class HolidayController {
   @PostMapping("/holidays")
   public ResponseEntity<Void> uploadHolidays(@Valid @RequestBody UploadHolidayRequest request) {
     uploadHolidaysUseCase.uploadHolidays(
-        new UploadHolidayCommand(request.year(), SyncExecutionType.MANUAL_EXECUTION)
+        new UploadHolidayCommand(
+            request.year(),
+            SyncExecutionType.MANUAL_EXECUTION,
+            YearPolicy.DEFAULT_RANGE_LENGTH.getValue()
+        )
     );
 
     return ResponseEntity.status(HttpStatus.ACCEPTED).build();
