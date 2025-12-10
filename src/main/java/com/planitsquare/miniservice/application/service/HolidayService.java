@@ -18,6 +18,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
 
 /**
  * 공휴일 관리 Application Service.
@@ -36,6 +39,7 @@ public class HolidayService implements UploadHolidaysUseCase, DeleteHolidaysUseC
   private final SaveAllCountriesPort saveAllCountriesPort;
   private final DeleteHolidaysPort deleteHolidaysPort;
   private final HolidaySyncService holidaySyncService;
+  private final Executor holidayTaskExecutor;
 
   /**
    * 지정된 연도 범위의 공휴일 데이터를 업로드합니다.
@@ -50,44 +54,125 @@ public class HolidayService implements UploadHolidaysUseCase, DeleteHolidaysUseC
    */
   @Override
   @SyncJob(executionType = "#command.executionType()")
-  public void uploadHolidays(UploadHolidayCommand command) {
+  public List<SyncResult> uploadHolidays(UploadHolidayCommand command) {
     YearPolicy.requireAtLeastMinYear(command.year());
     final SyncExecutionType syncExecutionType = command.executionType();
 
-    log.info("공휴일 업로드 시작 - 연도: {}, 실행 타입: {}",
+    log.info("공휴일 업로드 시작 (비동기) - 연도: {}, 실행 타입: {}",
         command.year(), syncExecutionType.getDisplayName());
 
     List<Integer> years = YearRangeHelper.generateYearsFromEnd(command.year());
     List<Country> countries = ensureCountriesLoaded(syncExecutionType);
 
-    log.info("공휴일 업로드 진행 - 국가 수: {}, 처리 연도들: {}", countries.size(), years);
-    fetchAndSaveHolidaysForAllCountriesAndYears(countries, years);
+    log.info("공휴일 비동기 업로드 진행 - 국가 수: {}, 처리 연도들: {}", countries.size(), years);
+    List<SyncResult> results = fetchAndSaveHolidaysForAllCountriesAndYearsAsync(countries, years);
 
     log.info("공휴일 업로드 완료 - 총 {}개 국가, {}개 연도 처리", countries.size(), years.size());
+    return results;
   }
 
   /**
-   * 모든 국가와 연도에 대해 공휴일을 조회하고 저장합니다.
+   * 모든 국가와 연도에 대해 비동기로 공휴일을 조회하고 저장합니다.
    *
-   * <p>각 국가-연도 조합에 대해 외부 API로부터 공휴일을 조회하여 데이터베이스에 저장합니다.
+   * <p>각 국가-연도 조합은 독립적인 CompletableFuture 태스크로 실행됩니다.
+   * 개별 태스크 실패는 전체 작업을 중단시키지 않으며, 모든 태스크 완료까지 대기합니다.
    * 동기화는 {@link HolidaySyncService}를 통해 수행되며, AOP를 통한 이력 기록이 자동으로 처리됩니다.
    *
    * @param countries 국가 목록
    * @param years 연도 목록
    * @since 1.0
    */
-  private void fetchAndSaveHolidaysForAllCountriesAndYears(
+  private List<SyncResult> fetchAndSaveHolidaysForAllCountriesAndYearsAsync(
       List<Country> countries,
       List<Integer> years
   ) {
     Long jobId = JobIdContext.getJobId();
 
-    countries.forEach(country ->
-        years.forEach(year -> {
-          SyncHolidayCommand syncCommand = new SyncHolidayCommand(jobId, country, year);
-          holidaySyncService.syncHolidaysForCountryAndYear(syncCommand);
-        })
+    // 1. 비동기 작업 생성 및 실행
+    List<CompletableFuture<SyncResult>> futures = createAsyncTasks(jobId, countries, years);
+
+    // 2. 모든 작업 완료 대기 및 결과 수집
+    List<SyncResult> results = waitForAllTasksAndCollectResults(futures);
+
+    log.info("비동기 동기화 완료 - {}", SyncStats.from(results).toLogString());
+    return results;
+  }
+
+  /**
+   * 모든 국가-연도 조합에 대한 비동기 작업을 생성합니다.
+   *
+   * @param jobId Job ID
+   * @param countries 국가 목록
+   * @param years 연도 목록
+   * @return CompletableFuture 리스트
+   * @since 1.0
+   */
+  private List<CompletableFuture<SyncResult>> createAsyncTasks(
+      Long jobId,
+      List<Country> countries,
+      List<Integer> years
+  ) {
+    return countries.stream()
+        .flatMap(country -> years.stream()
+            .map(year -> createSyncTask(jobId, country, year))
+        )
+        .toList();
+  }
+
+  /**
+   * 모든 비동기 작업이 완료될 때까지 대기하고 결과를 수집합니다.
+   *
+   * <p>개별 작업 실패는 {@link SyncResult#failure}로 처리되어,
+   * 전체 작업 완료에 영향을 주지 않습니다.
+   *
+   * @param futures CompletableFuture 리스트
+   * @return 수집된 결과 리스트
+   * @since 1.0
+   */
+  private List<SyncResult> waitForAllTasksAndCollectResults(
+      List<CompletableFuture<SyncResult>> futures
+  ) {
+    CompletableFuture<Void> allTasks = CompletableFuture.allOf(
+        futures.toArray(new CompletableFuture[0])
     );
+
+    try {
+      allTasks.join(); // 모든 작업 완료까지 대기
+    } catch (CompletionException e) {
+      // 개별 작업 실패는 SyncResult.failure로 처리되므로 무시
+      log.debug("일부 비동기 작업 실패 (개별 결과에 기록됨)", e);
+    }
+
+    // 모든 결과 수집 (성공/실패 모두 포함)
+    return futures.stream()
+        .map(CompletableFuture::join)
+        .toList();
+  }
+
+  /**
+   * 단일 국가-연도 조합에 대한 동기화 태스크를 생성합니다.
+   *
+   * <p>CompletableFuture를 사용하여 비동기로 실행되며,
+   * 개별 실패는 {@link SyncResult#failure}로 기록됩니다.
+   *
+   * @param jobId Job ID
+   * @param country 국가
+   * @param year 연도
+   * @return CompletableFuture 태스크
+   * @since 1.0
+   */
+  private CompletableFuture<SyncResult> createSyncTask(Long jobId, Country country, int year) {
+    return CompletableFuture.supplyAsync(() -> {
+      try {
+        SyncHolidayCommand syncCommand = new SyncHolidayCommand(jobId, country, year);
+        List<Holiday> holidays = holidaySyncService.syncHolidaysForCountryAndYear(syncCommand);
+        return SyncResult.success(country, year, holidays.size());
+      } catch (Exception e) {
+        log.error("동기화 실패 - 국가: {}, 연도: {}, 에러: {}",
+            country.getCode(), year, e.getMessage(), e);
+        return SyncResult.failure(country, year, e.getMessage());
+      }
+    }, holidayTaskExecutor);
   }
 
   /**

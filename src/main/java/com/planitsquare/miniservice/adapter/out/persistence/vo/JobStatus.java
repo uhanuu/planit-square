@@ -28,6 +28,13 @@ public enum JobStatus {
   COMPLETED("완료"),
 
   /**
+   * 부분 성공 상태.
+   *
+   * <p>일부 작업은 성공하고 일부는 실패했음을 나타냅니다.
+   */
+  PARTIAL_SUCCESS("부분 성공"),
+
+  /**
    * 실패 상태.
    *
    * <p>모든 작업이 실패했음을 나타냅니다.
@@ -54,6 +61,16 @@ public enum JobStatus {
    */
   public boolean isCompleted() {
     return this == COMPLETED;
+  }
+
+  /**
+   * 부분 성공 상태인지 확인합니다.
+   *
+   * @return 부분 성공 상태이면 {@code true}
+   * @since 1.0
+   */
+  public boolean isPartialSuccess() {
+    return this == PARTIAL_SUCCESS;
   }
 
   /**

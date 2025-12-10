@@ -25,6 +25,7 @@ import com.planitsquare.miniservice.domain.vo.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.concurrent.Executor;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -48,6 +49,7 @@ class HolidayServiceTest {
   @Mock private RecordSyncHistoryPort recordSyncHistoryPort;
   @Mock private SyncJobPort syncJobPort;
   @Mock private HolidaySyncService holidaySyncService;
+  @Mock private Executor holidayTaskExecutor;
 
   @InjectMocks private HolidayService holidayService;
 
@@ -81,6 +83,13 @@ class HolidayServiceTest {
 
     // SyncJob 기본 설정
     lenient().when(syncJobPort.startJob(any(SyncExecutionType.class))).thenReturn(1L);
+
+    // Executor를 동기 실행으로 모킹 (테스트 단순화)
+    lenient().doAnswer(invocation -> {
+      Runnable task = invocation.getArgument(0);
+      task.run(); // 동기 실행
+      return null;
+    }).when(holidayTaskExecutor).execute(any(Runnable.class));
   }
 
   private UploadHolidayCommand cmd(int year, SyncExecutionType type) {

@@ -59,6 +59,24 @@ public class SyncJobJpaEntity extends BaseTimeEntity {
   private LocalDateTime endTime;
 
   /**
+   * 전체 작업 수.
+   */
+  @Column(name = "total_tasks")
+  private Integer totalTasks;
+
+  /**
+   * 성공한 작업 수.
+   */
+  @Column(name = "success_count")
+  private Integer successCount;
+
+  /**
+   * 실패한 작업 수.
+   */
+  @Column(name = "failure_count")
+  private Integer failureCount;
+
+  /**
    * 낙관적 락을 위한 버전 필드.
    *
    * <p>동시성 제어를 위해 사용됩니다.
@@ -74,6 +92,9 @@ public class SyncJobJpaEntity extends BaseTimeEntity {
       JobStatus status,
       LocalDateTime startTime,
       LocalDateTime endTime,
+      Integer totalTasks,
+      Integer successCount,
+      Integer failureCount,
       Long version
   ) {
     this.id = id;
@@ -81,6 +102,9 @@ public class SyncJobJpaEntity extends BaseTimeEntity {
     this.status = status;
     this.startTime = startTime;
     this.endTime = endTime;
+    this.totalTasks = totalTasks;
+    this.successCount = successCount;
+    this.failureCount = failureCount;
     this.version = version;
   }
 
@@ -105,14 +129,41 @@ public class SyncJobJpaEntity extends BaseTimeEntity {
   }
 
 
-  public void complete(LocalDateTime endTime) {
-    this.status = JobStatus.COMPLETED;
+  /**
+   * Job을 통계와 함께 완료 처리합니다.
+   *
+   * <p>성공/실패 카운트를 기반으로 최종 상태를 결정합니다:
+   * <ul>
+   *   <li>모든 작업 성공: {@link JobStatus#COMPLETED}</li>
+   *   <li>일부 성공, 일부 실패: {@link JobStatus#PARTIAL_SUCCESS}</li>
+   *   <li>모든 작업 실패: {@link JobStatus#FAILED}</li>
+   * </ul>
+   *
+   * @param endTime 종료 시간
+   * @param totalTasks 전체 작업 수
+   * @param successCount 성공한 작업 수
+   * @param failureCount 실패한 작업 수
+   * @since 1.0
+   */
+  public void completeWithStats(
+      LocalDateTime endTime,
+      int totalTasks,
+      int successCount,
+      int failureCount
+  ) {
     this.endTime = endTime;
-  }
+    this.totalTasks = totalTasks;
+    this.successCount = successCount;
+    this.failureCount = failureCount;
 
-  public void fail(LocalDateTime endTime) {
-    this.status = JobStatus.FAILED;
-    this.endTime = endTime;
+    // 상태 결정
+    if (failureCount == 0) {
+      this.status = JobStatus.COMPLETED;
+    } else if (successCount == 0) {
+      this.status = JobStatus.FAILED;
+    } else {
+      this.status = JobStatus.PARTIAL_SUCCESS;
+    }
   }
 
 

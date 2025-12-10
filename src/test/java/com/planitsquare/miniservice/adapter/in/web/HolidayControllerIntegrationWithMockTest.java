@@ -15,8 +15,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.util.Collections;
+
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -54,7 +56,7 @@ class HolidayControllerIntegrationWithMockTest extends MockIntegrationTestBase {
     // Given
     UploadHolidayRequest request = new UploadHolidayRequest(2025);
     // job이 이미 실행되는 경우 깨질 수 있어 Mock 처리
-    doNothing().when(uploadHolidaysUseCase).uploadHolidays(any());
+    when(uploadHolidaysUseCase.uploadHolidays(any())).thenReturn(Collections.emptyList());
 
     // When & Then
     mockMvc.perform(post("/api/v1/holidays")
