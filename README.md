@@ -3,6 +3,23 @@
 전 세계 공휴일 데이터를 관리하는 REST API 서비스입니다.
 외부 API로부터 최근 5년(2020-2025) 공휴일 데이터를 수집하고, 다양한 조건으로 검색할 수 있습니다.
 
+## 제출물 체크리스트
+
+### ✅ 빌드 & 실행 방법
+
+위의 **[빌드 & 실행 방법](#빌드--실행-방법)** 섹션을 참조하세요.
+
+### ✅ REST API 명세 요약
+
+위의 **[REST API 명세](#rest-api-명세)** 섹션에서 모든 엔드포인트, 파라미터, 응답 예시를 확인할 수 있습니다.
+
+### ✅ 테스트 성공 확인
+
+위의 **[테스트 성공 확인](#테스트-성공-확인)** 섹션을 참조하세요.
+
+### ✅ Swagger UI 및 OpenAPI 문서
+위의 **[Swagger UI 및 OpenAPI 문서](#swagger-ui-및-openapi-문서)** 섹션을 참조하세요.
+
 ## 프로젝트 개요
 
 ### 핵심 특징
@@ -76,7 +93,7 @@ Application Service 계층을 **책임별로 명확히 분리**하여 유지보�
 
 ```
 application/service/
-├── HolidayAsyncService          # 비동기 업로드 오케스트레이션
+├── HolidayAsyncService          # 병렬 업로드 오케스트레이션
 ├── HolidayManagementService     # 공휴일 삭제/덮어쓰기
 ├── HolidaySearchService         # 공휴일 검색
 ├── HolidaySyncInnerService      # 외부 API 호출 + 저장 (내부용)
@@ -89,7 +106,7 @@ application/service/
 
 | Service | 책임 | Use Cases |
 |---------|------|-----------|
-| **HolidayAsyncService** | 비동기 업로드 오케스트레이션<br/>CompletableFuture 관리<br/>여러 국가/연도 병렬 처리 | `UploadHolidaysUseCase` |
+| **HolidayAsyncService** | 병렬 업로드 오케스트레이션<br/>CompletableFuture 관리<br/>여러 국가/연도 병렬 처리 | `UploadHolidaysUseCase` |
 | **HolidayManagementService** | 공휴일 삭제 및 덮어쓰기<br/>트랜잭션 관리 (DB 작업만) | `DeleteHolidaysUseCase`<br/>`RefreshHolidaysUseCase` |
 | **HolidaySearchService** | 공휴일 검색 및 조회 | `SearchHolidaysUseCase` |
 | **ExternalApiService** | 외부 API 호출 (공개)<br/>국가 조회 포함 | `FetchHolidaysUseCase` |
@@ -193,7 +210,7 @@ erDiagram
 ### 2. 프로젝트 클론
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/uhanuu/planit-square.git
 cd mini-service
 ```
 
@@ -217,52 +234,18 @@ cd mini-service
 java -jar build/libs/mini-service-0.0.1-SNAPSHOT.jar
 ```
 
-### 5. 애플리케이션 실행 확인
+## 테스트 성공 확인
 
-```bash
-# Health check
-curl http://localhost:8080/actuator/health
-
-# 또는 브라우저에서
-http://localhost:8080/swagger-ui.html
-```
-
-## 테스트
-
-### 전체 테스트 실행
-
+![img.png](img.png)
 ```bash
 ./gradlew clean test
 ```
 
-### 테스트 성공 확인
-
 테스트 실행 후 다음 위치에서 리포트 확인:
-
 ```
 build/reports/tests/test/index.html
 ```
 
-**테스트 커버리지:**
-- Application Service: 단위 테스트로 비즈니스 로직 검증
-- Repository: Spring Data JPA 통합 테스트
-- QueryDSL: 동적 쿼리 결과 검증
-
-### 테스트 실행 예시
-
-```bash
-$ ./gradlew clean test
-
-> Task :test
-
-HolidayAsyncServiceTest > uploadHolidays 테스트 > INITIAL_SYSTEM_LOAD면 외부 국가 조회 후 저장한다 PASSED
-HolidayAsyncServiceTest > uploadHolidays 테스트 > INITIAL_SYSTEM_LOAD가 아니면 DB에서 국가 조회한다 PASSED
-HolidayManagementServiceTest > deleteHolidays 테스트 > 특정 연도와 국가의 공휴일을 삭제하고 삭제 건수를 반환한다 PASSED
-HolidayManagementServiceTest > refreshHolidays 테스트 > 특정 연도와 국가의 공휴일을 삭제하고 새로 조회하여 저장한다 PASSED
-...
-
-BUILD SUCCESSFUL in 12s
-```
 
 ## REST API 명세
 
@@ -270,8 +253,8 @@ BUILD SUCCESSFUL in 12s
 
 | Method | Endpoint | 설명 |
 |--------|----------|------|
-| `POST` | `/api/v1/holidays` | 공휴일 데이터 업로드 (비동기) |
-| `PUT` | `/api/v1/holidays` | 공휴일 데이터 덮어쓰기 (동기) |
+| `POST` | `/api/v1/holidays` | 공휴일 데이터 업로드 (병렬처리) |
+| `PUT` | `/api/v1/holidays` | 공휴일 데이터 덮어쓰기 |
 | `DELETE` | `/api/v1/holidays/{year}/{countryCode}` | 공휴일 데이터 삭제 |
 | `GET` | `/api/v1/holidays` | 공휴일 검색 (페이징) |
 
@@ -281,7 +264,7 @@ BUILD SUCCESSFUL in 12s
 
 **Endpoint:** `POST /api/v1/holidays`
 
-**설명:** 외부 API로부터 지정된 연도까지의 최근 5년 공휴일 데이터를 비동기로 업로드합니다.
+**설명:** 외부 API로부터 지정된 연도까지의 최근 5년 공휴일 데이터를 병렬로 업로드합니다.
 
 **Request Body:**
 
@@ -299,7 +282,7 @@ BUILD SUCCESSFUL in 12s
 
 **Response:**
 
-- **202 Accepted** - 업로드 요청 접수 (비동기 처리)
+- **200 OK** - 업로드 완료
 
 **Example:**
 
@@ -310,9 +293,9 @@ curl -X POST "http://localhost:8080/api/v1/holidays" \
 ```
 
 **특징:**
-- 비동기로 처리되어 즉시 응답 반환
-- Job 단위로 실행되며, `sync_job` 테이블에서 진행 상황 확인 가능
 - 여러 국가를 병렬로 처리하여 성능 최적화
+- Job 단위로 실행되며, `sync_job` 테이블에서 진행 상황 확인 가능
+- CompletableFuture를 활용한 동시성 제어
 
 ---
 
@@ -569,24 +552,6 @@ http://localhost:8080/v3/api-docs.yaml
 - `idx_holiday_date`: 날짜만으로 검색 시 사용
 - `idx_holiday_country`: 국가만으로 검색 시 사용
 
-#### 성능 개선 효과
-
-**Before (인덱스 없음):**
-```sql
--- Full Table Scan
-SELECT * FROM holiday WHERE country_code = 'KR' AND date BETWEEN '2024-01-01' AND '2024-12-31';
--- 실행 시간: ~100ms (전체 테이블 스캔)
-```
-
-**After (복합 인덱스):**
-```sql
--- Index Scan (idx_holiday_country_date 사용)
-SELECT * FROM holiday WHERE country_code = 'KR' AND date BETWEEN '2024-01-01' AND '2024-12-31';
--- 실행 시간: ~5ms (인덱스 범위 스캔)
-```
-
-**성능 향상:** 약 **20배** 개선
-
 #### 인덱스 설정 코드
 
 ```java
@@ -617,72 +582,3 @@ http://localhost:8080/h2-console
 - JDBC URL: `jdbc:h2:mem:testdb`
 - Username: `sa`
 - Password: (없음)
-
-## 주요 기능
-
-### 1. 동적 쿼리 지원 (QueryDSL)
-
-- 여러 검색 조건을 조합하여 유연한 검색 가능
-- 컴파일 타임 타입 안정성 보장
-- 복잡한 조건문도 가독성 있게 작성
-
-### 2. 페이징 처리
-
-- Spring Data의 `Page` 객체 활용
-- 페이지 번호, 크기, 전체 개수 등 메타데이터 제공
-- 대량 데이터도 효율적으로 처리
-
-### 3. 정렬 지원
-
-- 날짜, 이름, 국가 코드 기준 정렬
-- 오름차순/내림차순 선택 가능
-
-### 4. 비동기 처리
-
-- CompletableFuture를 사용한 병렬 처리
-- ThreadPoolExecutor 커스터마이징
-- 여러 국가의 공휴일을 동시에 조회하여 성능 향상
-
-### 5. Job 기반 동시성 제어
-
-- Job 단위로 작업 상태 관리
-- 실행 중인 Job이 있을 때 삭제/덮어쓰기 차단
-- 데이터 정합성 보장
-
-## 프로젝트 구조
-
-```
-mini-service/
-├── build.gradle                 # Gradle 빌드 설정
-├── CLAUDE.md                    # 프로젝트 가이드라인
-├── README.md                    # 프로젝트 문서
-└── src/
-    ├── main/
-    │   ├── java/
-    │   │   └── com/planitsquare/miniservice/
-    │   │       ├── domain/              # 도메인 계층
-    │   │       │   ├── model/          # Holiday (Entity)
-    │   │       │   └── vo/             # Country, CountryCode (Value Object)
-    │   │       ├── application/         # 애플리케이션 계층
-    │   │       │   ├── port/in/        # Use Case 인터페이스
-    │   │       │   ├── port/out/       # Repository 인터페이스
-    │   │       │   └── service/        # Application Service
-    │   │       │       ├── HolidayAsyncService
-    │   │       │       ├── HolidayManagementService
-    │   │       │       ├── HolidaySearchService
-    │   │       │       ├── ExternalApiService
-    │   │       │       ├── HolidaySyncInnerService
-    │   │       │       └── SyncJobValidator
-    │   │       └── adapter/             # 어댑터 계층
-    │   │           ├── in/web/         # REST Controller
-    │   │           └── out/persistence/ # JPA Repository
-    │   └── resources/
-    │       └── application.yml          # 설정 파일
-    └── test/
-        └── java/                        # 테스트 코드
-            └── com/planitsquare/miniservice/
-                └── application/service/
-                    ├── HolidayAsyncServiceTest
-                    ├── HolidayManagementServiceTest
-                    └── HolidaySearchServiceTest
-```

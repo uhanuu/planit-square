@@ -52,7 +52,7 @@ public class HolidayController {
       description = "외부 API로부터 특정 년도의 휴일 데이터를 가져와 데이터베이스에 저장합니다."
   )
   @ApiResponses(value = {
-      @ApiResponse(responseCode = "202", description = "업로드 요청이 성공적으로 접수됨"),
+      @ApiResponse(responseCode = "200", description = "업로드 요청이 성공적으로 접수됨"),
       @ApiResponse(responseCode = "400", description = "잘못된 요청 (유효하지 않은 년도 또는 실행 타입)"),
       @ApiResponse(responseCode = "500", description = "서버 내부 오류")
   })
@@ -66,7 +66,7 @@ public class HolidayController {
         )
     );
 
-    return ResponseEntity.status(HttpStatus.ACCEPTED).build();
+    return ResponseEntity.ok().build();
   }
 
   /**

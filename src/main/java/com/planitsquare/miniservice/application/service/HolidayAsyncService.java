@@ -22,9 +22,9 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
 
 /**
- * 공휴일 비동기 업로드 Application Service.
+ * 공휴일 병렬 업로드 Application Service.
  *
- * <p>여러 국가와 연도의 공휴일을 비동기로 조회하여 저장하는 오케스트레이션을 담당합니다.
+ * <p>여러 국가와 연도의 공휴일을 병렬로 조회하여 저장하는 오케스트레이션을 담당합니다.
  * CompletableFuture와 ThreadPoolExecutor를 사용하여 병렬 처리를 수행합니다.
  *
  * @since 1.0
@@ -42,10 +42,10 @@ public class HolidayAsyncService implements UploadHolidaysUseCase, SyncHolidayDa
   private final DeleteHolidaysPort deleteHolidaysPort;
 
   /**
-   * 지정된 연도 범위의 공휴일 데이터를 비동기로 업로드합니다.
+   * 지정된 연도 범위의 공휴일 데이터를 병렬로 업로드합니다.
    *
    * <p>실행 타입에 따라 국가 목록을 확보하고, 각 국가와 연도별로 공휴일을 조회하여 저장합니다.
-   * 비동기로 실행되며, 각 실행은 독립적인 트랜잭션 내에서 수행됩니다.
+   * 병렬로 실행되며, 각 실행은 독립적인 트랜잭션 내에서 수행됩니다.
    *
    * <p>Job 시작/완료는 {@link SyncJob} 어노테이션을 통해 AOP가 자동으로 처리합니다.
    *
@@ -59,13 +59,13 @@ public class HolidayAsyncService implements UploadHolidaysUseCase, SyncHolidayDa
     YearPolicy.requireAtLeastMinYear(command.year());
     final SyncExecutionType syncExecutionType = command.executionType();
 
-    log.info("공휴일 업로드 시작 (비동기) - 연도: {}, 실행 타입: {}",
+    log.info("공휴일 업로드 시작 (병렬처리) - 연도: {}, 실행 타입: {}",
         command.year(), syncExecutionType.getDisplayName());
 
     List<Integer> years = YearRangeHelper.generateYearsFromEnd(command.year(), command.yearRangeLength());
     List<Country> countries = ensureCountriesLoaded(syncExecutionType);
 
-    log.info("공휴일 비동기 업로드 진행 - 국가 수: {}, 처리 연도들: {}", countries.size(), years);
+    log.info("공휴일 병렬 업로드 진행 - 국가 수: {}, 처리 연도들: {}", countries.size(), years);
     List<SyncResult> results = fetchAndSaveHolidaysForAllCountriesAndYearsAsync(countries, years);
 
     log.info("공휴일 업로드 완료 - 총 {}개 국가, {}개 연도 처리", countries.size(), years.size());
@@ -73,7 +73,7 @@ public class HolidayAsyncService implements UploadHolidaysUseCase, SyncHolidayDa
   }
 
   /**
-   * 모든 국가와 연도에 대해 비동기로 공휴일을 조회하고 저장합니다.
+   * 모든 국가와 연도에 대해 병렬로 공휴일을 조회하고 저장합니다.
    *
    * <p>각 국가-연도 조합은 독립적인 CompletableFuture 태스크로 실행됩니다.
    * 개별 태스크 실패는 전체 작업을 중단시키지 않으며, 모든 태스크 완료까지 대기합니다.
@@ -89,18 +89,18 @@ public class HolidayAsyncService implements UploadHolidaysUseCase, SyncHolidayDa
   ) {
     Long jobId = JobIdContext.getJobId();
 
-    // 1. 비동기 작업 생성 및 실행
+    // 1. 병렬 작업 생성 및 실행
     List<CompletableFuture<SyncResult>> futures = createAsyncTasks(jobId, countries, years);
 
     // 2. 모든 작업 완료 대기 및 결과 수집
     List<SyncResult> results = waitForAllTasksAndCollectResults(futures);
 
-    log.info("비동기 동기화 완료 - {}", SyncStats.from(results).toLogString());
+    log.info("병렬 동기화 완료 - {}", SyncStats.from(results).toLogString());
     return results;
   }
 
   /**
-   * 모든 국가-연도 조합에 대한 비동기 작업을 생성합니다.
+   * 모든 국가-연도 조합에 대한 병렬 작업을 생성합니다.
    *
    * @param jobId Job ID
    * @param countries 국가 목록
@@ -121,7 +121,7 @@ public class HolidayAsyncService implements UploadHolidaysUseCase, SyncHolidayDa
   }
 
   /**
-   * 모든 비동기 작업이 완료될 때까지 대기하고 결과를 수집합니다.
+   * 모든 병렬 작업이 완료될 때까지 대기하고 결과를 수집합니다.
    *
    * <p>개별 작업 실패는 {@link SyncResult#failure}로 처리되어,
    * 전체 작업 완료에 영향을 주지 않습니다.
@@ -141,7 +141,7 @@ public class HolidayAsyncService implements UploadHolidaysUseCase, SyncHolidayDa
       allTasks.join(); // 모든 작업 완료까지 대기
     } catch (CompletionException e) {
       // 개별 작업 실패는 SyncResult.failure로 처리되므로 무시
-      log.debug("일부 비동기 작업 실패 (개별 결과에 기록됨)", e);
+      log.debug("일부 병렬 작업 실패 (개별 결과에 기록됨)", e);
     }
 
     // 모든 결과 수집 (성공/실패 모두 포함)
@@ -153,7 +153,7 @@ public class HolidayAsyncService implements UploadHolidaysUseCase, SyncHolidayDa
   /**
    * 단일 국가-연도 조합에 대한 동기화 태스크를 생성합니다.
    *
-   * <p>CompletableFuture를 사용하여 비동기로 실행되며,
+   * <p>CompletableFuture를 사용하여 병렬로 실행되며,
    * 개별 실패는 {@link SyncResult#failure}로 기록됩니다.
    *
    * @param jobId Job ID
@@ -200,10 +200,10 @@ public class HolidayAsyncService implements UploadHolidaysUseCase, SyncHolidayDa
   }
 
   /**
-   * 지정된 연도 범위의 공휴일 데이터를 비동기로 업로드합니다.
+   * 지정된 연도 범위의 공휴일 데이터를 병렬로 업로드합니다.
    *
    * 외부 API로 호출된 각 국가와 연도별로 공휴일을 전달 받아 저장합니다.
-   * 비동기로 실행되며, 각 실행은 독립적인 트랜잭션 내에서 수행됩니다.
+   * 병렬로 실행되며, 각 실행은 독립적인 트랜잭션 내에서 수행됩니다.
    *
    * <p>Job 시작/완료는 {@link SyncJob} 어노테이션을 통해 AOP가 자동으로 처리합니다.
    *
@@ -226,7 +226,7 @@ public class HolidayAsyncService implements UploadHolidaysUseCase, SyncHolidayDa
 
     List<Country> countries = ensureCountriesLoaded(syncExecutionType);
 
-    log.info("공휴일 비동기 업로드 진행 - 국가 수: {}, 처리 연도들: {}", countries.size(), years);
+    log.info("공휴일 병렬 업로드 진행 - 국가 수: {}, 처리 연도들: {}", countries.size(), years);
     List<SyncResult> results = fetchAndSaveHolidaysForAllCountriesAndYearsAsync(countries, years);
 
     log.info("연간 공휴일 동기화 완료 - 총 {}개 국가, {}개 연도 처리", countries.size(), years.size());

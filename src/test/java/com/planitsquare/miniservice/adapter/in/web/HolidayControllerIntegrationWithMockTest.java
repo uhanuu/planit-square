@@ -57,8 +57,8 @@ class HolidayControllerIntegrationWithMockTest extends MockIntegrationTestBase {
   }
 
   @Test
-  @DisplayName("유효한 요청으로 공휴일 업로드를 수행하면 202 ACCEPTED를 반환한다")
-  void 유효한_요청으로_공휴일_업로드를_수행하면_202_ACCEPTED를_반환한다() throws Exception {
+  @DisplayName("유효한 요청으로 공휴일 업로드를 수행하면 200 OK를 반환한다")
+  void 유효한_요청으로_공휴일_업로드를_수행하면_200_OK를_반환한다() throws Exception {
     // Given
     UploadHolidayRequest request = new UploadHolidayRequest(2025);
     // job이 이미 실행되는 경우 깨질 수 있어 Mock 처리
@@ -68,7 +68,7 @@ class HolidayControllerIntegrationWithMockTest extends MockIntegrationTestBase {
     mockMvc.perform(post("/api/v1/holidays")
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isAccepted());
+        .andExpect(status().isOk());
   }
 
 }
