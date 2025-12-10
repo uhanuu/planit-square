@@ -28,6 +28,7 @@ spring:
         order_updates: true
         batch_versioned_data: true
     defer-datasource-initialization: true
+    open-in-view: false
 
   sql:
     init:

@@ -10,6 +10,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
+import java.util.List;
+
 @DisplayName("RefreshHolidaysCommand 테스트")
 class RefreshHolidaysCommandTest {
 
@@ -26,7 +29,7 @@ class RefreshHolidaysCommandTest {
       SyncExecutionType executionType = SyncExecutionType.API_REFRESH;
 
       // When & Then
-      assertThatCode(() -> new RefreshHolidaysCommand(year, countryCode, executionType))
+      assertThatCode(() -> new RefreshHolidaysCommand(year, countryCode, executionType, Collections.emptyList()))
           .doesNotThrowAnyException();
     }
 
@@ -39,7 +42,7 @@ class RefreshHolidaysCommandTest {
       SyncExecutionType executionType = SyncExecutionType.API_REFRESH;
 
       // When
-      RefreshHolidaysCommand command = new RefreshHolidaysCommand(year, countryCode, executionType);
+      RefreshHolidaysCommand command = new RefreshHolidaysCommand(year, countryCode, executionType, Collections.emptyList());
 
       // Then
       assertThat(command.year()).isEqualTo(year);
@@ -61,7 +64,7 @@ class RefreshHolidaysCommandTest {
       SyncExecutionType executionType = SyncExecutionType.API_REFRESH;
 
       // When & Then
-      assertThatThrownBy(() -> new RefreshHolidaysCommand(year, countryCode, executionType))
+      assertThatThrownBy(() -> new RefreshHolidaysCommand(year, countryCode, executionType, Collections.emptyList()))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("연도가 존재하지 않습니다.");
     }
@@ -75,7 +78,7 @@ class RefreshHolidaysCommandTest {
       SyncExecutionType executionType = SyncExecutionType.API_REFRESH;
 
       // When & Then
-      assertThatThrownBy(() -> new RefreshHolidaysCommand(year, countryCode, executionType))
+      assertThatThrownBy(() -> new RefreshHolidaysCommand(year, countryCode, executionType, Collections.emptyList()))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("국가 코드가 존재하지 않습니다.");
     }

@@ -101,4 +101,18 @@ public class SyncJobPersistenceAdapter implements SyncJobPort {
   public boolean isInitialSystemLoad() {
     return !syncJobJpaRepository.existsByIdIsNotNull();
   }
+
+  /**
+   * 현재 실행 중인 Job이 있는지 확인합니다.
+   *
+   * <p>RUNNING 상태의 Job이 존재하는지 확인합니다.
+   * 삭제 작업 등 데이터 무결성이 중요한 작업 전에 호출하여 동시성을 제어합니다.
+   *
+   * @return 실행 중인 Job이 존재하면 true, 없으면 false
+   * @since 1.0
+   */
+  @Override
+  public boolean hasRunningJob() {
+    return syncJobJpaRepository.existsByStatus(JobStatus.RUNNING);
+  }
 }
